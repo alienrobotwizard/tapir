@@ -15,6 +15,20 @@ import 'org.apache.pig.PigServer'
 import 'org.apache.pig.impl.PigContext'
 import 'org.apache.pig.tools.grunt.GruntParser'
 
+import 'org.apache.pig.newplan.logical.visitor.CastLineageSetter'
+import 'org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor'
+import 'org.apache.pig.newplan.logical.visitor.DuplicateForEachColumnRewriteVisitor'
+import 'org.apache.pig.newplan.logical.visitor.ImplicitSplitInsertVisitor'
+import 'org.apache.pig.newplan.logical.visitor.ScalarVariableValidator'
+import 'org.apache.pig.newplan.logical.visitor.ScalarVisitor'
+import 'org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor'
+import 'org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor'
+import 'org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter'
+import 'org.apache.pig.newplan.logical.optimizer.SchemaResetter'
+import 'org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor'
+import 'org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover'
+import 'org.apache.pig.impl.plan.CompilationMessageCollector'
+
 class LogicalPlanServer < PigServer
 
   #
@@ -57,9 +71,27 @@ class PigParser
   def get_pig_server context
     LogicalPlanServer.new(context)
   end
+
+  def compile plan
+    DanglingNestedNodeRemover.new(plan).visit
+    ColumnAliasConversionVisitor.new(plan).visit
+    SchemaAliasVisitor.new(plan).visit
+    ScalarVisitor.new(plan, pig_context, '').visit
+    ImplicitSplitInsertVisitor.new(plan).visit
+    DuplicateForEachColumnRewriteVisitor.new(plan).visit
+    
+    collector = CompilationMessageCollector.new
+    TypeCheckingRelVisitor.new(plan, collector).visit
+
+    UnionOnSchemaSetter.new(plan).visit
+    CastLineageSetter.new(plan, collector).visit
+    ScalarVariableValidator.new(plan).visit
+  end
   
   def get_logical_plan script
-    pig_server.get_logical_plan(script)
+    plan = pig_server.get_logical_plan(script)
+    compile(plan)
+    plan
   end
   
 end

@@ -1,5 +1,5 @@
-input_data = load 'notes.txt' as (first_field:chararray);
+input_data = load 'data.tsv' as (txt:chararray);
 
-filtered = filter input_data by SIZE(TOKENIZE(first_field)) > 3l;
+filtered = filter input_data by SIZE(TOKENIZE(txt)) > 3l;
 
 store filtered into 'moved-notes';

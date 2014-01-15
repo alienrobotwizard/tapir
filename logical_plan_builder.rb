@@ -27,8 +27,20 @@ import 'org.apache.pig.newplan.logical.relational.LOFilter'
 import 'org.apache.pig.newplan.logical.relational.LOStore'
 import 'org.apache.pig.newplan.logical.relational.LogicalPlan'
 import 'org.apache.pig.newplan.logical.relational.LogicalSchema'
+import 'org.apache.pig.newplan.logical.visitor.CastLineageSetter'
+import 'org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor'
+import 'org.apache.pig.newplan.logical.visitor.DuplicateForEachColumnRewriteVisitor'
+import 'org.apache.pig.newplan.logical.visitor.ImplicitSplitInsertVisitor'
+import 'org.apache.pig.newplan.logical.visitor.ScalarVariableValidator'
+import 'org.apache.pig.newplan.logical.visitor.ScalarVisitor'
+import 'org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor'
+import 'org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor'
+import 'org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter'
 import 'org.apache.pig.newplan.logical.optimizer.SchemaResetter'
+import 'org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor'
+import 'org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover'
 import 'org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil'
+import 'org.apache.pig.impl.plan.CompilationMessageCollector'
 
 class LogicalPlanBuilderJson 
 
@@ -74,6 +86,27 @@ class LogicalPlanBuilderJson
         build_store_op(op['data']['input'], op['data']['filename'])
       end      
     end
+    compile_plan
+  end
+
+  #
+  # FIXME: Needs its own class
+  #
+  def compile_plan
+
+    DanglingNestedNodeRemover.new(plan).visit
+    ColumnAliasConversionVisitor.new(plan).visit
+    SchemaAliasVisitor.new(plan).visit
+    ScalarVisitor.new(plan, pig_context, '').visit
+    ImplicitSplitInsertVisitor.new(plan).visit
+    DuplicateForEachColumnRewriteVisitor.new(plan).visit
+    
+    collector = CompilationMessageCollector.new
+    TypeCheckingRelVisitor.new(plan, collector).visit
+
+    UnionOnSchemaSetter.new(plan).visit
+    CastLineageSetter.new(plan, collector).visit
+    ScalarVariableValidator.new(plan).visit
   end
   
   #
@@ -242,9 +275,9 @@ lp = {
     {
       :operator => 'load',
       :data => {
-        :filename => 'notes.txt',
+        :filename => 'data.tsv',
         :alias    => 'input_data',
-        :schema   => {:fields => [{:name => 'first_field', :type => 55}], :version => 0, :sortKeys => [], :sortKeyOrders => []}
+        :schema   => {:fields => [{:name => 'txt', :type => 55}], :version => 0, :sortKeys => [], :sortKeyOrders => []}
         }
     },
     {
@@ -265,7 +298,7 @@ lp = {
                 :args => [
                   {
                     :type  => 'col_ref',
-                    :alias => 'first_field'
+                    :alias => 'txt'
                   }
                 ]
               }
@@ -297,19 +330,19 @@ context.connect()
 builder = LogicalPlanBuilderJson.new(context)
 builder.build_from_json(lp)
 
-puts builder.plan
-# #
-# # Create a new PigContext and ExecutionEngine
-# #
-# 
-# engine  = context.getExecutionEngine()
-# 
-# #
-# # Next, take the serialized logical plan and launch it. Returns a
-# # PigStats object
-# #
-# 
-# script_state = engine.instantiateScriptState
-# org.apache.pig.tools.pigstats.ScriptState.start(script_state)
-# 
-# engine.launchPig(builder.plan, 'irrelevant', context)
+#puts builder.plan
+#
+# Create a new PigContext and ExecutionEngine
+#
+
+engine  = context.getExecutionEngine()
+
+#
+# Next, take the serialized logical plan and launch it. Returns a
+# PigStats object
+#
+
+script_state = engine.instantiateScriptState
+org.apache.pig.tools.pigstats.ScriptState.start(script_state)
+
+engine.launchPig(builder.plan, 'irrelevant', context)
