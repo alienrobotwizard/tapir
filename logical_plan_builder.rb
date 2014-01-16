@@ -11,13 +11,10 @@ require 'logical_expressions'
 
 import 'org.codehaus.jackson.map.ObjectMapper'
 
-import 'org.apache.pig.ExecType'
-import 'org.apache.pig.PigConfiguration'
 import 'org.apache.pig.impl.PigContext'
 import 'org.apache.pig.FuncSpec'
 import 'org.apache.pig.ResourceSchema'
 import 'org.apache.pig.impl.io.FileSpec'
-import 'org.apache.pig.builtin.PigStorage'
 import 'org.apache.pig.parser.LogicalPlanBuilder'
 import 'org.apache.pig.parser.QueryParserUtils'
 import 'org.apache.pig.newplan.logical.Util'
@@ -42,7 +39,7 @@ import 'org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover'
 import 'org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil'
 import 'org.apache.pig.impl.plan.CompilationMessageCollector'
 
-class LogicalPlanBuilderJson 
+class LogicalPlanSerializer 
 
   attr_accessor :plan, :pig_context, :file_name_map,
                 :load_index, :store_index, :operators
@@ -74,9 +71,13 @@ class LogicalPlanBuilderJson
 
   def build_from_json json
     lpj = JSON.parse(json)
+    build_from_obj(lpj)
+  end
+  
+  def build_from_obj obj
 
     # how to walk the structure in the right order is important
-    lpj['graph'].each do |op|
+    obj['graph'].each do |op|
       case op['operator']
       when 'load' then
         build_load_op(op['data']['filename'], op['data']['alias'], op['data']['schema'].to_json)
@@ -110,6 +111,8 @@ class LogicalPlanBuilderJson
   end
   
   #
+  # FIXME: Create resource schema without first serializing as json.
+  # This is hacky.
   # Return logical schema from json serialization via pig storage
   #
   def schema_from_json json
@@ -267,82 +270,3 @@ class LogicalPlanBuilderJson
   end
           
 end
-
-
-lp = {
-  :properties => {},
-  :graph => [
-    {
-      :operator => 'load',
-      :data => {
-        :filename => 'data.tsv',
-        :alias    => 'input_data',
-        :schema   => {:fields => [{:name => 'txt', :type => 55}], :version => 0, :sortKeys => [], :sortKeyOrders => []}
-        }
-    },
-    {
-      :operator => 'filter',
-      :data => {
-        :alias => 'filtered',
-        :input => ['input_data'],
-        # filter input_data by first_field != '';
-        :graph => {
-          :type => 'greater_than',
-          :lhs  => {
-            :type => 'func_eval',
-            :func => 'SIZE',
-            :args => [
-              {
-                :type => 'func_eval',
-                :func => 'TOKENIZE',
-                :args => [
-                  {
-                    :type  => 'col_ref',
-                    :alias => 'txt'
-                  }
-                ]
-              }
-            ]
-          },
-          :rhs  => {
-            :type => 'const',
-            :val  => 3
-          }
-        }
-      } 
-    },
-    {
-      :operator => 'store',
-      :data => {
-        :input    => ['filtered'], # input operator alias
-        :filename => 'moved-notes' 
-      }
-    }
-  ]
-}     
-
-lp = lp.to_json # Imagine it's being recieved via rest
-
-
-context = PigContext.new(ExecType::LOCAL, java.util.Properties.new)
-context.connect()
-
-builder = LogicalPlanBuilderJson.new(context)
-builder.build_from_json(lp)
-
-#puts builder.plan
-#
-# Create a new PigContext and ExecutionEngine
-#
-
-engine  = context.getExecutionEngine()
-
-#
-# Next, take the serialized logical plan and launch it. Returns a
-# PigStats object
-#
-
-script_state = engine.instantiateScriptState
-org.apache.pig.tools.pigstats.ScriptState.start(script_state)
-
-engine.launchPig(builder.plan, 'irrelevant', context)

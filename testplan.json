@@ -1,0 +1,70 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "data": {
+        "filename": "data.tsv",
+        "alias": "input_data",
+        "schema": {
+          "fields": [
+            {
+              "name": "txt",
+              "type": 55
+            }
+          ],
+          "version": 0,
+          "sortKeys": [
+
+          ],
+          "sortKeyOrders": [
+
+          ]
+        }
+      }
+    },
+    {
+      "operator": "filter",
+      "data": {
+        "alias": "filtered",
+        "input": [
+          "input_data"
+        ],
+        "graph": {
+          "type": "greater_than",
+          "lhs": {
+            "type": "func_eval",
+            "func": "SIZE",
+            "args": [
+              {
+                "type": "func_eval",
+                "func": "TOKENIZE",
+                "args": [
+                  {
+                    "type": "col_ref",
+                    "alias": "txt"
+                  }
+                ]
+              }
+            ]
+          },
+          "rhs": {
+            "type": "const",
+            "val": 3
+          }
+        }
+      }
+    },
+    {
+      "operator": "store",
+      "data": {
+        "input": [
+          "filtered"
+        ],
+        "filename": "moved-notes"
+      }
+    }
+  ]
+}
