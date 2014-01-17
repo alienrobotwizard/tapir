@@ -1,7 +1,12 @@
 import 'org.apache.pig.FuncSpec'
 import 'org.apache.pig.parser.FunctionType'
+import 'org.apache.pig.newplan.logical.expression.OrExpression'
+import 'org.apache.pig.newplan.logical.expression.AndExpression'
+import 'org.apache.pig.newplan.logical.expression.NotExpression'
 import 'org.apache.pig.newplan.logical.expression.ModExpression'
 import 'org.apache.pig.newplan.logical.expression.AddExpression'
+import 'org.apache.pig.newplan.logical.expression.NullExpression'
+import 'org.apache.pig.newplan.logical.expression.RegexExpression'
 import 'org.apache.pig.newplan.logical.expression.SubtractExpression'
 import 'org.apache.pig.newplan.logical.expression.MultiplyExpression'
 import 'org.apache.pig.newplan.logical.expression.DivideExpression'
@@ -17,6 +22,9 @@ import 'org.apache.pig.newplan.logical.expression.ProjectExpression'
 import 'org.apache.pig.newplan.logical.expression.UserFuncExpression'
 import 'org.apache.pig.newplan.logical.expression.LogicalExpressionPlan'
 
+#
+# No casting, no scalars (yet), no in statement, no case statement, no bincond
+#
 class LogicalExpressionBuilder
   
   attr_accessor :plan, :pig_context, :current_op
@@ -33,6 +41,14 @@ class LogicalExpressionBuilder
   #
   def condition op
     case op['type']
+    when 'or' then
+      build_or(op)
+    when 'and' then
+      build_and(op)
+    when 'not' then
+      build_not(op)
+    when 'isnull' then
+      build_null(op)
     when 'equal' then
       build_equal(op)
     when 'less_than' then
@@ -45,6 +61,8 @@ class LogicalExpressionBuilder
       build_greaterthan(op)
     when 'not_equal' then
       build_notequal(op)
+    when 'matches' then
+      build_regex(op)
     end    
   end
 
@@ -96,10 +114,12 @@ class LogicalExpressionBuilder
     case op['type']
     when 'func_eval' then
       return build_func_eval(op)
-    when 'bin_expr' then # leave out for now; bluesky
+    when 'bin_expr' then
+      raise "Not supported yet" 
     when 'case_expr' then
+      raise "Not supported yet"
     when 'case_cond' then
-      
+      raise "Not supported yet"
     when 'col_ref' then
       return build_project(op)
     end
@@ -131,37 +151,33 @@ class LogicalExpressionBuilder
     return le
   end  
 
-
-
-  
-  def build_add
+  def build_or op
+    rhs = condition(op['rhs'])
+    lhs = condition(op['lhs'])
+    return OrExpression.new(plan, lhs, rhs)
   end
 
-  def build_and
+  def build_and op
+    rhs = condition(op['rhs'])
+    lhs = condition(op['lhs'])
+    return AndExpression.new(plan, lhs, rhs)
+  end
+    
+  def build_not op
+    rhs = condition(op['rhs'])
+    return NotExpression.new(plan, rhs)
   end
 
-  def build_bincond
+  def build_null op
+    rhs = expression(op['rhs'])
+    return NullExpression.new(plan, rhs)
   end
-
-  def build_binary
-  end
-  
-  def build_cast
-  end
-  
-  def build_column
-  end
-  
+    
   def build_constant op
+    # Fixme, ensure the type of val makes sense here
     ConstantExpression.new(plan, op['val'])
   end
-  
-  def build_dereference
-  end
-  
-  def build_divide
-  end
-  
+    
   def build_equal op
     lhs = expression(op['lhs'])
     rhs = expression(op['rhs'])
@@ -180,9 +196,6 @@ class LogicalExpressionBuilder
     GreaterThanExpression.new(plan, lhs, rhs)
   end
   
-  def build_isnull
-  end
-  
   def build_lessthanequal op
     lhs = expression(op['lhs'])
     rhs = expression(op['rhs'])
@@ -195,47 +208,23 @@ class LogicalExpressionBuilder
     LessThanExpression.new(plan, lhs, rhs)
   end
   
-  def build_maplookup
-  end
-  
-  def build_mod
-  end
-  
-  def build_multiply
-  end
-  
-  def build_negative
-  end
-  
   def build_notequal op
     lhs = expression(op['lhs'])
     rhs = expression(op['rhs'])
     NotEqualExpression.new(plan, lhs, rhs)
   end
-  
-  def build_not
-  end
-  
-  def build_or
-  end
-  
+    
   def build_project op
     ProjectExpression.new(plan, 0, op['alias'], nil, current_op)
   end
   
-  def build_regex
+  def build_regex op
+    lhs = expression(op['lhs'])
+    rhs = expression(op['rhs'])
+    RegexExpression.new(plan, lhs, rhs)
   end
   
   def build_scalar
-  end
-  
-  def build_subtract
-  end
-  
-  def build_unary
-  end
-  
-  def build_userfunc
   end
   
 end
