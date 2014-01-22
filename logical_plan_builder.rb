@@ -9,6 +9,7 @@ jars.each{|j| require j}
 
 require 'logical_expressions'
 require 'foreach_plan_builder'
+require 'expressions'
 
 import 'org.codehaus.jackson.map.ObjectMapper'
 
@@ -71,23 +72,23 @@ class LogicalPlanSerializer
   end
 
   def build_from_json json
-    lpj = JSON.parse(json)
+    lpj = JSON.parse(json, {:symbolize_names => true})
     build_from_obj(lpj)
   end
   
   def build_from_obj obj
 
     # how to walk the structure in the right order is important
-    obj['graph'].each do |op|
-      case op['operator']
+    obj[:graph].each do |op|
+      case op[:operator]
       when 'load' then
-        build_load_op(op['data']['filename'], op['data']['alias'], op['data']['schema'].to_json)
+        build_load_op(op[:data][:filename], op[:data][:alias], op[:data][:schema].to_json)
       when 'filter' then
-        build_filter_op(op['data']['input'], op['data']['alias'], op['data']['graph'])
+        build_filter_op(op[:data][:input], op[:data][:alias], op[:data][:graph])
       when 'foreach' then
-        build_foreach_op(op['data']['input'], op['data']['alias'], op['data']['graph'])
+        build_foreach_op(op[:data][:input], op[:data][:alias], op[:data][:graph])
       when 'store' then
-        build_store_op(op['data']['input'], op['data']['filename'])
+        build_store_op(op[:data][:input], op[:data][:filename])
       end      
     end
     compile_plan
@@ -213,10 +214,10 @@ class LogicalPlanSerializer
   def build_filter_op inputs, aliaz, graph
     
     op  = LOFilter.new(plan)
-    leb = LogicalExpressionBuilder.new(pig_context, op)
+    lep = LogicalExpression::Plan.new(pig_context, op)
+    lep.build(graph)    
     
-    leb.condition(graph) # build the filter condition LogicalExpressionPlan
-    op.set_filter_plan(leb.plan)
+    op.set_filter_plan(lep.to_pig)
     
     aliaz = build_op(op, aliaz, inputs, nil)
     SchemaResetter.new(op.getPlan, true).visit(op)
