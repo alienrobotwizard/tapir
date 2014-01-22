@@ -1,0 +1,68 @@
+{
+
+  "properties": {
+    "exectype": "local"
+  },
+
+  "graph": [
+    
+    {
+      "operator": "load",
+      "data": {
+        "filename": "data.tsv",
+        "alias": "input_data",
+        "schema": {
+          "fields": [
+            {
+              "name": "txt",
+              "type": 55
+            }
+          ],
+          "version": 0,
+          "sortKeys": [
+
+          ],
+          "sortKeyOrders": [
+
+          ]
+        }
+      }
+    },
+    
+    {
+      "operator": "foreach",
+      "data": {
+        "alias": "tokens",
+        "input": [
+          "input_data"
+        ],
+        "graph": {
+          "type": "generate",
+          "results": [
+            {
+              "type": "func_eval",
+              "flatten": true,
+              "func": "TOKENIZE",
+              "args": [
+                {
+                  "type": "col_ref",
+                  "alias": "txt"
+                }
+              ]
+            }
+          ]   
+        }
+      }
+    },
+    
+    {
+      "operator": "store",
+      "data": {
+        "input": [
+          "tokens"
+        ],
+        "filename": "tokenized"
+      }
+    }
+  ]
+}

@@ -4,10 +4,11 @@ require 'java'
 require 'rubygems'
 require 'json'
 
-jars = [File.join(ENV['PIG_HOME'], 'pig.jar')]
+jars = Dir[File.join(ENV['PIG_HOME'], 'pig*.jar')].reject{|j| j =~ /withouthadoop/}
 jars.each{|j| require j}
 
 require 'logical_expressions'
+require 'foreach_plan_builder'
 
 import 'org.codehaus.jackson.map.ObjectMapper'
 
@@ -83,6 +84,8 @@ class LogicalPlanSerializer
         build_load_op(op['data']['filename'], op['data']['alias'], op['data']['schema'].to_json)
       when 'filter' then
         build_filter_op(op['data']['input'], op['data']['alias'], op['data']['graph'])
+      when 'foreach' then
+        build_foreach_op(op['data']['input'], op['data']['alias'], op['data']['graph'])
       when 'store' then
         build_store_op(op['data']['input'], op['data']['filename'])
       end      
@@ -214,6 +217,15 @@ class LogicalPlanSerializer
     
     leb.condition(graph) # build the filter condition LogicalExpressionPlan
     op.set_filter_plan(leb.plan)
+    
+    aliaz = build_op(op, aliaz, inputs, nil)
+    SchemaResetter.new(op.getPlan, true).visit(op)
+    return aliaz
+  end
+
+  def build_foreach_op inputs, aliaz, graph
+    fpb = ForeachPlanBuilder.new(plan, pig_context)
+    op  = fpb.build_op(graph)
     
     aliaz = build_op(op, aliaz, inputs, nil)
     SchemaResetter.new(op.getPlan, true).visit(op)

@@ -5,7 +5,7 @@ import 'org.apache.pig.newplan.logical.expression.AndExpression'
 import 'org.apache.pig.newplan.logical.expression.NotExpression'
 import 'org.apache.pig.newplan.logical.expression.ModExpression'
 import 'org.apache.pig.newplan.logical.expression.AddExpression'
-import 'org.apache.pig.newplan.logical.expression.NullExpression'
+import 'org.apache.pig.newplan.logical.expression.IsNullExpression'
 import 'org.apache.pig.newplan.logical.expression.RegexExpression'
 import 'org.apache.pig.newplan.logical.expression.SubtractExpression'
 import 'org.apache.pig.newplan.logical.expression.MultiplyExpression'
@@ -170,7 +170,7 @@ class LogicalExpressionBuilder
 
   def build_null op
     rhs = expression(op['rhs'])
-    return NullExpression.new(plan, rhs)
+    return IsNullExpression.new(plan, rhs)
   end
     
   def build_constant op

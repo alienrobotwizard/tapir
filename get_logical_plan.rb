@@ -2,7 +2,7 @@
 
 require 'java'
 
-PIG_JAR = File.join(ENV['PIG_HOME'], 'pig.jar')
+PIG_JAR = Dir[File.join(ENV['PIG_HOME'], 'pig*.jar')].reject{|j| j =~ /withouthadoop/}.first
 
 require PIG_JAR
 

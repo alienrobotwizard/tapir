@@ -3,7 +3,7 @@
 require 'sinatra'
 require 'logical_plan_builder'
 
-jars = [File.join(ENV['PIG_HOME'], 'pig.jar')]
+jars = Dir[File.join(ENV['PIG_HOME'], 'pig*.jar')].reject{|j| j =~ /withouthadoop/}     
 jars.each{|j| require j}
 
 import 'java.util.Properties'
@@ -15,7 +15,7 @@ def to_properties conf
   props
 end
 
-def pig_context props  
+def pig_context props
   context = PigContext.new(props)
   context.connect()
   context
