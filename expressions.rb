@@ -26,6 +26,10 @@ import 'org.apache.pig.newplan.logical.expression.LogicalExpressionPlan'
 # Adapters
 #
 module LogicalExpression
+
+  def self.from_hash hsh
+    EXPRESSIONS[hsh[:type]].from_hash(hsh)
+  end
   
   class Plan
     attr_accessor :graph # Points to the root LogicalExpression
@@ -38,7 +42,7 @@ module LogicalExpression
       @pig_context  = pig_context
       @current_op   = current_op
     end
-
+    
     def build hsh
       @graph = EXPRESSIONS[hsh[:type]].from_hash(hsh)
     end
@@ -57,6 +61,15 @@ module LogicalExpression
       graph.to_pig(pig_context, current_plan, current_op)
       current_plan # return the current logical expression plan
     end    
+
+    #
+    # An expression that has already been 'from-hashed'
+    # can still be attached to this plan
+    #
+    def to_pig expression
+      expression.to_pig(pig_context, current_plan, current_op)
+      current_plan
+    end
     
   end
   

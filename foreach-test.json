@@ -31,17 +31,16 @@
     
     {
       "operator": "foreach",
-      "data": {
-        "alias": "tokens",
-        "input": [
-          "input_data"
-        ],
-        "graph": {
-          "type": "generate",
-          "results": [
+      "alias": "tokens",
+      "input": [
+        "input_data"
+      ],
+      "graph": [
+        {
+          "operator":"generate",
+          "results" : [
             {
               "type": "func_eval",
-              "flatten": true,
               "func": "TOKENIZE",
               "args": [
                 {
@@ -50,9 +49,12 @@
                 }
               ]
             }
-          ]   
+          ],
+          "flattens":[
+            true
+          ]
         }
-      }
+      ]
     },
     
     {

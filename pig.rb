@@ -9,9 +9,11 @@ jars.each{|j| require j}
 import 'java.util.Properties'
 import 'org.apache.pig.impl.PigContext'
 
-def to_properties conf
+def to_properties conf  
   props = Properties.new
-  props.put_all(conf)
+  conf.each do |k,v|
+    props.put(k.to_s, v)
+  end  
   props
 end
 
@@ -33,9 +35,9 @@ end
 
 post '/plan' do
   request.body.rewind
-  plan = JSON.parse(request.body.read)
+  plan = JSON.parse(request.body.read, {:symbolize_names => true})
 
-  props = to_properties(plan['properties'])
+  props = to_properties(plan[:properties])
   pc    = pig_context(props)
   
   builder = LogicalPlanSerializer.new(pc)

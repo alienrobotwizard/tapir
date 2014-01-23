@@ -7,9 +7,9 @@ require 'json'
 jars = Dir[File.join(ENV['PIG_HOME'], 'pig*.jar')].reject{|j| j =~ /withouthadoop/}
 jars.each{|j| require j}
 
-require 'logical_expressions'
 require 'foreach_plan_builder'
 require 'expressions'
+require 'operators'
 
 import 'org.codehaus.jackson.map.ObjectMapper'
 
@@ -86,7 +86,7 @@ class LogicalPlanSerializer
       when 'filter' then
         build_filter_op(op[:data][:input], op[:data][:alias], op[:data][:graph])
       when 'foreach' then
-        build_foreach_op(op[:data][:input], op[:data][:alias], op[:data][:graph])
+        build_foreach_op(op)
       when 'store' then
         build_store_op(op[:data][:input], op[:data][:filename])
       end      
@@ -224,12 +224,13 @@ class LogicalPlanSerializer
     return aliaz
   end
 
-  def build_foreach_op inputs, aliaz, graph
-    fpb = ForeachPlanBuilder.new(plan, pig_context)
-    op  = fpb.build_op(graph)
-    
-    aliaz = build_op(op, aliaz, inputs, nil)
-    SchemaResetter.new(op.getPlan, true).visit(op)
+  def build_foreach_op op
+    foreach     = LogicalOperator::ForEach.from_hash(op)
+    pig_foreach = foreach.to_pig(pig_context, plan, nil)
+
+    # Connect to rest of plan
+    aliaz = build_op(pig_foreach, op[:alias], op[:input], nil)
+    SchemaResetter.new(pig_foreach.get_plan, true).visit(pig_foreach)
     return aliaz
   end
   
