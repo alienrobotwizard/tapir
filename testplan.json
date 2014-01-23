@@ -27,33 +27,31 @@
     },
     {
       "operator": "filter",
-      "data": {
-        "alias": "filtered",
-        "input": [
-          "input_data"
-        ],
-        "graph": {
-          "type": "greater_than",
-          "lhs": {
-            "type": "func_eval",
-            "func": "SIZE",
-            "args": [
-              {
-                "type": "func_eval",
-                "func": "TOKENIZE",
-                "args": [
-                  {
-                    "type": "col_ref",
-                    "alias": "txt"
-                  }
-                ]
-              }
-            ]
-          },
-          "rhs": {
-            "type": "const",
-            "val": 3
-          }
+      "alias": "filtered",
+      "input": [
+        "input_data"
+      ],
+      "condition": {
+        "type": "greater_than",
+        "lhs": {
+          "type": "func_eval",
+          "func": "SIZE",
+          "args": [
+            {
+              "type": "func_eval",
+              "func": "TOKENIZE",
+              "args": [
+                {
+                  "type": "col_ref",
+                  "alias": "txt"
+                }
+              ]
+            }
+          ]
+        },
+        "rhs": {
+          "type": "const",
+          "val": 3
         }
       }
     },
