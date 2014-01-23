@@ -5,26 +5,23 @@
   "graph": [
     {
       "operator": "load",
-      "data": {
-        "filename": "data.tsv",
-        "alias": "input_data",
-        "schema": {
-          "fields": [
-            {
-              "name": "txt",
-              "type": 55
-            }
-          ],
-          "version": 0,
-          "sortKeys": [
-
-          ],
-          "sortKeyOrders": [
-
-          ]
-        }
+      "filename": "data.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          {
+            "name": "txt",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
       }
     },
+    
     {
       "operator": "filter",
       "alias": "filtered",

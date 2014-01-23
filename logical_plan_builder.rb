@@ -82,9 +82,9 @@ class LogicalPlanSerializer
     obj[:graph].each do |op|
       case op[:operator]
       when 'load' then
-        build_load_op(op[:data][:filename], op[:data][:alias], op[:data][:schema].to_json)
+        build_load_op(op)
       when 'filter' then
-        build_filter_op(op[:data][:input], op[:data][:alias], op[:data][:graph])
+        build_filter_op(op[:input], op[:alias], op[:condition])
       when 'foreach' then
         build_foreach_op(op)
       when 'store' then
@@ -189,26 +189,12 @@ class LogicalPlanSerializer
   # Adds a load op to the current logical plan.
   # FIXME: Allow passing in optional LoadFunc class
   #
-  def build_load_op filename, aliaz, json_schema
+  def build_load_op op
 
-    # Parse the json schema into a LogicalSchema object
-    logical_schema = schema_from_json(json_schema)
-
-    # Get load func
-    load_func     = func_for_name("PigStorage")
-
-    # Get absolute path
-    absolute_path = absolute_load_path("PigStorage", filename)
-
-    # Build LOLoad
-    file_spec = FileSpec.new(absolute_path, spec_for_name("PigStorage"))    
-    op        = LOLoad.new(file_spec, logical_schema, plan, ConfigurationUtil.toConfiguration(pig_context.getProperties()), load_func, aliaz + "_" + LogicalPlanBuilder.newOperatorKey(''))
-
-    # Necessary details
-    op.get_schema
-    op.setTmpLoad(false);
+    load     = LogicalOperator::Load.from_hash(op)
+    pig_load = load.to_pig(pig_context, plan, nil) 
     
-    return build_op(op, aliaz, [], nil)
+    return build_op(pig_load, op[:alias], [], nil)
   end
 
   def build_filter_op inputs, aliaz, graph
@@ -217,7 +203,7 @@ class LogicalPlanSerializer
     lep = LogicalExpression::Plan.new(pig_context, op)
     lep.build(graph)    
     
-    op.set_filter_plan(lep.to_pig)
+    op.set_filter_plan(lep.to_pig(lep.graph))
     
     aliaz = build_op(op, aliaz, inputs, nil)
     SchemaResetter.new(op.getPlan, true).visit(op)

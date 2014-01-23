@@ -57,11 +57,6 @@ module LogicalExpression
       to_hash.to_json
     end
 
-    def to_pig
-      graph.to_pig(pig_context, current_plan, current_op)
-      current_plan # return the current logical expression plan
-    end    
-
     #
     # An expression that has already been 'from-hashed'
     # can still be attached to this plan
