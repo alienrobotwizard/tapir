@@ -1,11 +1,14 @@
 {
+
   "properties": {
     "exectype": "local"
   },
+
   "graph": [
+    
     {
       "operator": "load",
-      "filename": "data.tsv",
+      "uri": "../test/data/words.tsv",
       "alias": "input_data",
       "schema": {
         "fields": [
@@ -23,17 +26,15 @@
     },
     
     {
-      "operator": "filter",
-      "alias": "filtered",
+      "operator": "foreach",
+      "alias": "tokens",
       "input": [
         "input_data"
       ],
-      "condition": {
-        "type": "greater_than",
-        "lhs": {
-          "type": "func_eval",
-          "func": "SIZE",
-          "args": [
+      "graph": [
+        {
+          "operator":"generate",
+          "results" : [
             {
               "type": "func_eval",
               "func": "TOKENIZE",
@@ -44,22 +45,20 @@
                 }
               ]
             }
+          ],
+          "flattens":[
+            true
           ]
-        },
-        "rhs": {
-          "type": "const",
-          "val": 3
         }
-      }
+      ]
     },
+    
     {
       "operator": "store",
-      "data": {
-        "input": [
-          "filtered"
-        ],
-        "filename": "moved-notes"
-      }
+      "input": [
+        "tokens"
+      ],
+      "uri": "../test/data/foreach-test-out"
     }
   ]
 }

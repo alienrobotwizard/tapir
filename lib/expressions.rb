@@ -22,9 +22,6 @@ import 'org.apache.pig.newplan.logical.expression.ProjectExpression'
 import 'org.apache.pig.newplan.logical.expression.UserFuncExpression'
 import 'org.apache.pig.newplan.logical.expression.LogicalExpressionPlan'
 
-#
-# Adapters
-#
 module LogicalExpression
 
   def self.from_hash hsh

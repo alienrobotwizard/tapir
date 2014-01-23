@@ -1,7 +1,7 @@
 #!/usr/bin/env jruby
 
 require 'sinatra'
-require 'logical_plan_builder'
+require 'pigdsl'
 
 jars = Dir[File.join(ENV['PIG_HOME'], 'pig*.jar')].reject{|j| j =~ /withouthadoop/}     
 jars.each{|j| require j}
@@ -40,11 +40,11 @@ post '/plan' do
   props = to_properties(plan[:properties])
   pc    = pig_context(props)
   
-  builder = LogicalPlanSerializer.new(pc)
-  builder.build_from_obj(plan)
+  compiler = LogicalPlanCompiler.new(pc)
+  compiled = compiler.compile(plan)
 
   engine = execution_engine(pc)
 
-  engine.launch_pig(builder.plan, '', pc)
+  engine.launch_pig(compiled, '', pc)
   "success"
 end

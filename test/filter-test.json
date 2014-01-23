@@ -1,0 +1,63 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/words.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          {
+            "name": "txt",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "filter",
+      "alias": "filtered",
+      "input": [
+        "input_data"
+      ],
+      "condition": {
+        "type": "greater_than",
+        "lhs": {
+          "type": "func_eval",
+          "func": "SIZE",
+          "args": [
+            {
+              "type": "func_eval",
+              "func": "TOKENIZE",
+              "args": [
+                {
+                  "type": "col_ref",
+                  "alias": "txt"
+                }
+              ]
+            }
+          ]
+        },
+        "rhs": {
+          "type": "const",
+          "val": 3
+        }
+      }
+    },
+    {
+      "operator": "store",
+      "input": [
+        "filtered"
+      ],
+      "uri": "../test/data/filter-test-out"
+    }
+  ]
+}

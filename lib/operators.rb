@@ -28,12 +28,16 @@ module LogicalOperator
     OPERATORS[hsh[:operator]].from_hash(hsh)
   end
 
-  def self.spec_for_name name
-    FuncSpec.new(name)
+  def self.spec_for_name name, args = []
+    if args.size > 0
+      FuncSpec.new(name, args.to_java(:string))
+    else      
+      FuncSpec.new(name)
+    end      
   end
   
-  def self.func_for_name name
-    PigContext.instantiate_func_from_spec(spec_for_name(name))
+  def self.func_for_name name, args = []
+    PigContext.instantiate_func_from_spec(spec_for_name(name, args))
   end
   
   class Plan
@@ -43,9 +47,29 @@ module LogicalOperator
     attr_accessor :current_plan
     attr_accessor :pig_context
 
+    # internal
+    attr_accessor :operators
+    
+    class OperatorMap
+      
+      def initialize
+        @data = {}
+      end
+      
+      def get k
+        @data[k]
+      end
+      
+      def put k, v
+        @last_rel = k
+        @data[k] = v
+      end    
+    end
+  
     def initialize pig_context
       @pig_context  = pig_context
-      @current_plan = LogicalPlan.new      
+      @current_plan = LogicalPlan.new
+      @operators    = OperatorMap.new
     end
 
     def build hsh
@@ -65,22 +89,65 @@ module LogicalOperator
     end
 
     def to_pig
+      
       load_index    = 0
+      store_index   = 0
       file_name_map = {}
       
       graph.each do |op|
-
-        if op.is_a? Load
+        case op
+        when Load then
           key                = op.set_absolute_path(pig_context, load_index, file_name_map)
           load_index        += 1
           file_name_map[key] = op.uri
+          
+          pig_op = op.to_pig(pig_context, current_plan, nil)
+          build_op(pig_op, op.alias, [], nil)
+        when Store then
+          key                = op.set_absolute_path(pig_context, store_index, file_name_map)
+          store_index       += 1
+          file_name_map[key] = op.uri
+
+          pig_op = op.to_pig(pig_context, current_plan, nil)
+          build_op(pig_op, nil, op.input, nil)
+        else
+          pig_op = op.to_pig(pig_context, current_plan, nil)
+          build_op(pig_op, op.alias, op.input, nil)
         end
-        
-        op.to_pig(pig_context, current_plan, nil)        
       end
       
       current_plan
     end    
+
+    def set_alias(op, aliaz)
+      if (!aliaz)
+        aliaz = LogicalPlanBuilder.new_operator_key('')
+      end
+      op.set_alias(aliaz)
+    end
+
+    def set_partitioner(op, partitioner)
+      if (partitioner)
+        op.set_custom_partitioner(partitioner)
+      end
+    end 
+    
+    def build_op op, aliaz, input_aliazes, partitioner
+      set_alias(op, aliaz)
+      set_partitioner(op, partitioner)
+      op.set_location(org.apache.pig.parser.SourceLocation.new('',0,0)) # increment a counter or some such
+      
+      current_plan.add(op)
+      
+      input_aliazes.each do |a|
+        pred = operators.get(a)
+        current_plan.connect(pred, op)      
+      end
+
+      @operators.put(op.get_alias, op)
+      pig_context.set_last_alias(op.get_alias)
+      return op.get_alias
+    end
     
   end
 
@@ -126,10 +193,10 @@ module LogicalOperator
 
     def to_pig pig_context, current_plan, current_op
       logical_schema = schema_from_hash(schema)
-      func           = LogicalOperator.func_for_name(load_func)
-      file_spec      = FileSpec.new(uri, LogicalOperator.spec_for_name(load_func))
+      func           = LogicalOperator.func_for_name(load_func, load_func_args)
+      file_spec      = FileSpec.new(uri, LogicalOperator.spec_for_name(load_func, load_func_args))
       conf           = ConfigurationUtil.to_configuration(pig_context.get_properties())
-      
+
       load = LOLoad.new(file_spec, logical_schema, current_plan, conf, func, @alias + "_" + LogicalPlanBuilder.new_operator_key(''))
       load.get_schema
       load.set_tmp_load(false)
@@ -137,8 +204,8 @@ module LogicalOperator
     end    
 
     def set_absolute_path pig_context, load_index, file_name_map
-      spec = LogicalOperator.spec_for_name(load_func)
-      func = LogicalOperator.func_for_name(load_func)
+      spec = LogicalOperator.spec_for_name(load_func, load_func_args)
+      func = LogicalOperator.func_for_name(load_func, load_func_args)
       key  = QueryParserUtils.construct_file_name_signature(uri, spec) + "_" + load_index.to_s
 
       path = file_name_map[key]
@@ -164,6 +231,68 @@ module LogicalOperator
     end
     
   end
+
+  class Store
+    attr_accessor :input # Array of input relation names (limit 1)
+    attr_accessor :uri   # Location to store to
+    attr_accessor :store_func      # Optional StoreFunc class name
+    attr_accessor :store_func_args # Array of StoreFunc arguments
+    
+    def initialize input, uri, store_func, store_func_args
+      @input = input
+      @uri   = uri
+      @store_func      = store_func
+      @store_func_args = store_func_args
+    end
+
+    def self.from_hash hsh
+      input = hsh[:input]
+      uri   = hsh[:uri]
+      store_func      = (hsh[:store_func] || "PigStorage")
+      store_func_args = (hsh[:store_func_args] || [])
+      Store.new(input, uri, store_func, store_func_args)
+    end
+
+    def to_hash
+      {
+        :operator        => 'store',
+        :input           => input,
+        :uri             => uri,
+        :store_func      => store_func,
+        :store_func_args => store_func_args
+      }
+    end
+
+    def to_json
+      to_hash.to_json
+    end    
+
+    def to_pig pig_context, current_plan, current_op
+      func       = LogicalOperator.func_for_name(store_func, store_func_args)
+      signature  = input.first + LogicalPlanBuilder.new_operator_key('')
+      func.set_store_func_udf_context_signature(signature)
+
+      file_spec = FileSpec.new(uri, LogicalOperator.spec_for_name(store_func, store_func_args))
+      store     = LOStore.new(current_plan, file_spec, func, signature)
+      return store
+    end
+
+    def set_absolute_path pig_context, store_index, file_name_map
+      func = LogicalOperator.func_for_name(store_func, store_func_args)
+      key  = input.first + store_index.to_s
+      path = file_name_map[key]
+      
+      if !path
+        path = func.relative_to_absolute_path(uri, QueryParserUtils.get_current_dir(pig_context))
+        if path
+          QueryParserUtils.set_hdfs_servers(path, pig_context) # wtf?
+        end
+        @uri = path
+      end      
+      key
+    end
+    
+  end
   
   class Filter
     attr_accessor :alias     # Name of the output relation
@@ -179,7 +308,8 @@ module LogicalOperator
     def self.from_hash hsh
       aliaz     = hsh[:alias]
       input     = hsh[:input]
-      condition = LogicalExpression.from_hash(hsh[:condition])      
+      condition = LogicalExpression.from_hash(hsh[:condition])
+      Filter.new(aliaz, input, condition)
     end
 
     def to_hash
@@ -196,8 +326,10 @@ module LogicalOperator
     end
 
     def to_pig pig_context, current_plan, current_op
-      filter = LOFilter.new(current_plan)
-      filter.set_filter_plan(LogicalExpression::Plan.new(pig_context, op).to_pig(condition))      
+      filter      = LOFilter.new(current_plan)
+      filter_plan = LogicalExpression::Plan.new(pig_context, filter).to_pig(condition)
+      puts filter_plan
+      filter.set_filter_plan(filter_plan)      
       return filter      
     end    
     
@@ -241,7 +373,7 @@ module LogicalOperator
         op.to_pig(pig_context, inner_plan, foreach)
       end
       foreach.set_inner_plan(inner_plan)
-      foreach
+      return foreach
     end
     
   end
@@ -339,7 +471,10 @@ module LogicalOperator
 
   OPERATORS = {
     'foreach'  => LogicalOperator::ForEach,
-    'generate' => LogicalOperator::Generate
+    'generate' => LogicalOperator::Generate,
+    'load'     => LogicalOperator::Load,
+    'store'    => LogicalOperator::Store,
+    'filter'   => LogicalOperator::Filter
   }
   
 end
