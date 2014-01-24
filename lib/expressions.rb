@@ -58,14 +58,20 @@ module LogicalExpression
     # An expression that has already been 'from-hashed'
     # can still be attached to this plan
     #
-    def to_pig expression
+    def to_pig expression, in_foreach_plan = false, nest_context = {}
+      expression.in_foreach_plan = in_foreach_plan
+      expression.nest_context    = nest_context
       expression.to_pig(pig_context, current_plan, current_op)
       current_plan
     end
     
   end
+
+  class Expression
+    attr_accessor :in_nest_plan, :in_foreach_plan, :nest_context
+  end
   
-  class UserFuncExpression 
+  class UserFuncExpression < Expression
     attr_accessor :args # An array of LogicalExpressions
     attr_accessor :func # Fully qualified string class name
 
@@ -93,7 +99,12 @@ module LogicalExpression
     end
 
     def to_pig pig_context, current_plan, current_op
-      func_args  = args.map{|arg| arg.to_pig(pig_context, current_plan, current_op) }
+      func_args  = args.map do |arg|
+        arg.in_foreach_plan = in_foreach_plan
+        arg.nest_context    = nest_context
+        arg.to_pig(pig_context, current_plan, current_op)
+      end
+      
       func_clazz = pig_context.get_class_for_alias(func)
       func_spec  = pig_context.get_func_spec_from_alias(func)
       
@@ -109,7 +120,7 @@ module LogicalExpression
     
   end
 
-  class ProjectExpression
+  class ProjectExpression < Expression
     attr_accessor :alias
 
     def initialize aliaz
@@ -131,13 +142,51 @@ module LogicalExpression
       to_hash.to_json
     end
 
+    def build_nested current_plan, current_op
+      operators   = nest_context[:operators]
+      expressions = nest_context[:expression_plans]
+
+      puts "Building nested for plan #{current_plan} and operators #{nest_context[:operators]} and expressions #{nest_context[:expression_plans]}"
+      exp_plan = expressions[@alias]
+      if exp_plan
+        cp = exp_plan.deep_copy
+        current_plan.merge(cp)
+
+        current_plan.get_operators.each do |op|
+          if op.is_a? org.apache.pig.newplan.logical.expression.ProjectExpression
+            op.set_attached_relational_op(current_op)
+          end          
+        end
+
+        root   = cp.get_sources.first
+        schema = root.get_field_schema
+        
+        schema.alias = @alias if !schema.alias
+        
+        root
+      else
+        org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, @alias, operators[@alias], current_op)
+      end      
+    end
+    
     def to_pig pig_context, current_plan, current_op
-      org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, @alias, nil, current_op)
+      if in_foreach_plan && nest_context[:operators].has_key?(@alias)
+        # inside nested foreach and column is defined in nested block
+        build_nested(current_plan, current_op)
+      else
+
+        # FIXME: Add scalar here
+        if in_foreach_plan
+          build_nested(current_plan, current_op)
+        else
+          org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, @alias, nil, current_op)
+        end        
+      end      
     end
     
   end
 
-  class NotExpression
+  class NotExpression < Expression
     attr_accessor :rhs
 
     def initialize rhs
@@ -159,13 +208,15 @@ module LogicalExpression
       to_hash.to_json
     end
 
-    def to_pig pig_context, current_plan, current_op      
+    def to_pig pig_context, current_plan, current_op
+      rhs.in_foreach_plan = in_foreach_plan
+      rhs.nest_context    = nest_context
       org.apache.pig.newplan.logical.expression.NotExpression.new(current_plan, rhs.to_pig(pig_context, current_plan, current_op))
     end
     
   end
 
-  class IsNullExpression
+  class IsNullExpression < Expression
     attr_accessor :rhs
 
     def initialize rhs
@@ -187,12 +238,56 @@ module LogicalExpression
       to_hash.to_json
     end
 
-    def to_pig pig_context, current_plan, current_op      
+    def to_pig pig_context, current_plan, current_op, in_foreach_plan
+      rhs.in_foreach_plan = in_foreach_plan
+      rhs.nest_context    = nest_context
       org.apache.pig.newplan.logical.expression.IsNullExpression.new(current_plan, rhs.to_pig(pig_context, current_plan, current_op))
     end
   end
 
-  class ConstantExpression
+  class AssignmentExpression < Expression
+    attr_accessor :alias
+    attr_accessor :rhs
+
+    # internal, for nest plans
+    attr_accessor :input, :input_ops
+    
+    def initialize aliaz, rhs
+      @alias = aliaz
+      @rhs   = rhs
+      
+      @input     = [] # shh.
+      @input_ops = []
+    end
+    
+    def self.from_hash hsh
+      aliaz = hsh[:alias]
+      rhs   = LogicalExpression.from_hash(hsh[:rhs])
+      AssignmentExpression.new(aliaz, rhs)
+    end
+
+    def to_hash
+      {
+        :type  => 'assign',
+        :alias => @alias,
+        :rhs   => rhs.to_hsh
+      }
+    end
+
+    def to_json
+      to_hash.to_json
+    end
+    
+    # Special case, return the right hand side's to_pig
+    def to_pig pig_context, current_plan, current_op
+      rhs.in_foreach_plan = in_foreach_plan
+      rhs.nest_context    = nest_context
+      rhs.to_pig(pig_context, current_plan, current_op)
+    end
+    
+  end
+  
+  class ConstantExpression < Expression
     attr_accessor :val
 
     def initialize val
@@ -220,7 +315,7 @@ module LogicalExpression
     
   end
   
-  class BinaryExpression
+  class BinaryExpression < Expression
     attr_accessor :rhs, :lhs
 
     def initialize lhs, rhs
@@ -237,7 +332,15 @@ module LogicalExpression
 
     def to_json
       to_hash.to_json
-    end    
+    end
+
+    def to_pig pig_context, current_plan, current_op
+      rhs.in_foreach_plan = in_foreach_plan
+      rhs.nest_context    = nest_context
+      lhs.in_foreach_plan = in_foreach_plan
+      lhs.nest_context    = nest_context
+    end
+    
   end  
     
   class OrExpression < BinaryExpression
@@ -248,10 +351,11 @@ module LogicalExpression
     end
 
     def to_hash
-      super.to_hash.merge({:type => 'or'})
+      super.merge({:type => 'or'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.OrExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -268,10 +372,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'and'})
+      super.merge({:type => 'and'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.AndExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -288,10 +393,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'equal'})
+      super.merge({:type => 'equal'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.EqualExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -308,10 +414,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'greater_than_or_eq'})
+      super.merge({:type => 'greater_than_or_eq'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.GreaterThanEqualExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -328,7 +435,7 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'less_than_or_eq'})
+      super.merge({:type => 'less_than_or_eq'})
     end
 
     def to_pig pig_context, current_plan, current_op
@@ -348,10 +455,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'less_than'})
+      super.merge({:type => 'less_than'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.LessThanExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -368,10 +476,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'greater_than'})
+      super.merge({:type => 'greater_than'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.GreaterThanExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -388,10 +497,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'not_equal'})
+      super.merge({:type => 'not_equal'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.NotEqualExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -408,10 +518,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'plus'})
+      super.merge({:type => 'plus'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.AddExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -428,10 +539,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'minus'})
+      super.merge({:type => 'minus'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.SubtractExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -448,10 +560,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'star'}) # confusing?
+      super.merge({:type => 'star'}) # confusing?
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.MultiplyExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -468,10 +581,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'div'})
+      super.merge({:type => 'div'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.DivideExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -488,10 +602,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'percent'}) # confusing?
+      super.merge({:type => 'percent'}) # confusing?
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.ModExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -508,10 +623,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'neg'})
+      super.merge({:type => 'neg'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.NegativeExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -528,10 +644,11 @@ module LogicalExpression
     end
     
     def to_hash
-      super.to_hash.merge({:type => 'regex'})
+      super.merge({:type => 'regex'})
     end
 
     def to_pig pig_context, current_plan, current_op
+      super
       org.apache.pig.newplan.logical.expression.RegexExpression.new(
         current_plan,
         lhs.to_pig(pig_context, current_plan, current_op),
@@ -539,7 +656,7 @@ module LogicalExpression
         )
     end
   end
-
+  
   EXPRESSIONS = {
     'or'                 => LogicalExpression::OrExpression,
     'and'                => LogicalExpression::AndExpression,
@@ -560,7 +677,9 @@ module LogicalExpression
     'neg'                => LogicalExpression::NegativeExpression,
     'const'              => LogicalExpression::ConstantExpression,
     'func_eval'          => LogicalExpression::UserFuncExpression,
-    'col_ref'            => LogicalExpression::ProjectExpression
+    'col_ref'            => LogicalExpression::ProjectExpression,
+    # special case, only works in nested foreach plan
+    'assign'             => LogicalExpression::AssignmentExpression
   }
   
 end

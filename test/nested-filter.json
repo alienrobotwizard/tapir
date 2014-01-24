@@ -1,0 +1,88 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/nestedfilter.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          {
+            "name": "source",
+            "type": 55
+          },
+          {
+            "name": "docs",
+            "type": 120,
+            "schema" : {
+              "fields": [
+                {
+                  "name": "t",
+                  "type": 110,
+                  "schema": {
+                    "fields": [
+                      {
+                        "name":"text",
+                        "type":55
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "foreach",
+      "alias": "filtered",
+      "input": [
+        "input_data"
+      ],
+      "graph": [
+        {
+          "operator": "filter",
+          "alias": "dogs",
+          "input": ["docs"],
+          "condition": {
+            "type": "equal",
+            "lhs" : {
+              "type": "col_ref",
+              "alias": "text"
+            },
+            "rhs" : {
+              "type": "const",
+              "val" : "dogs"
+            }
+          }
+        },
+        {
+          "operator": "generate",
+          "results" : [
+            {
+              "type": "col_ref",
+              "alias": "dogs"
+            }
+          ],
+          "flattens": [true]
+        }
+      ]
+    },
+    {
+      "operator": "store",
+      "input": [
+        "filtered"
+      ],
+      "uri": "../test/data/nested-filter-test-out"
+    }
+  ]
+}

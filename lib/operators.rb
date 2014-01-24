@@ -24,8 +24,11 @@ import 'org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil'
 module LogicalOperator
 
   def self.from_hash hsh
-    # FIXME: We *might* get both operators and expressions here; delegate accordingly
-    OPERATORS[hsh[:operator]].from_hash(hsh)
+    if hsh.has_key? :operator
+      OPERATORS[hsh[:operator]].from_hash(hsh)
+    else
+      LogicalExpression.from_hash(hsh)
+    end    
   end
 
   def self.spec_for_name name, args = []
@@ -38,6 +41,27 @@ module LogicalOperator
   
   def self.func_for_name name, args = []
     PigContext.instantiate_func_from_spec(spec_for_name(name, args))
+  end
+
+  def self.set_alias(op, aliaz)
+    if (!aliaz)
+      aliaz = LogicalPlanBuilder.new_operator_key('')
+    end
+    op.set_alias(aliaz)
+  end
+
+  def self.set_partitioner(op, partitioner)
+    if (partitioner)
+      op.set_custom_partitioner(partitioner)
+    end
+  end
+
+  def self.build_nested op, aliaz, current_plan, inputs
+    set_alias(op, aliaz)
+    current_plan.add(op)
+    inputs.each do |input|
+      current_plan.connect(input, op)
+    end        
   end
   
   class Plan
@@ -118,23 +142,10 @@ module LogicalOperator
       
       current_plan
     end    
-
-    def set_alias(op, aliaz)
-      if (!aliaz)
-        aliaz = LogicalPlanBuilder.new_operator_key('')
-      end
-      op.set_alias(aliaz)
-    end
-
-    def set_partitioner(op, partitioner)
-      if (partitioner)
-        op.set_custom_partitioner(partitioner)
-      end
-    end 
     
     def build_op op, aliaz, input_aliazes, partitioner
-      set_alias(op, aliaz)
-      set_partitioner(op, partitioner)
+      LogicalOperator.set_alias(op, aliaz)
+      LogicalOperator.set_partitioner(op, partitioner)
       op.set_location(org.apache.pig.parser.SourceLocation.new('',0,0)) # increment a counter or some such
       
       current_plan.add(op)
@@ -151,7 +162,12 @@ module LogicalOperator
     
   end
 
-  class Load
+
+  class Operator
+    attr_accessor :in_nest_plan, :in_foreach_plan, :input_ops
+  end
+  
+  class Load < Operator
     attr_accessor :alias     # String alias to assign to
     attr_accessor :uri       # URI to read from
     attr_accessor :schema    # Schema with the same schema as pig's .pig_schema file
@@ -232,7 +248,7 @@ module LogicalOperator
     
   end
 
-  class Store
+  class Store < Operator
     attr_accessor :input # Array of input relation names (limit 1)
     attr_accessor :uri   # Location to store to
     attr_accessor :store_func      # Optional StoreFunc class name
@@ -294,7 +310,7 @@ module LogicalOperator
     
   end
   
-  class Filter
+  class Filter < Operator
     attr_accessor :alias     # Name of the output relation
     attr_accessor :input     # Array of input relation (or inner bag) names
     attr_accessor :condition # A LogicalExpression::Plan
@@ -325,21 +341,28 @@ module LogicalOperator
       to_hash.to_json
     end
 
-    def to_pig pig_context, current_plan, current_op
+    def to_pig pig_context, current_plan, current_op, nest_context = {}
       filter      = LOFilter.new(current_plan)
-      filter_plan = LogicalExpression::Plan.new(pig_context, filter).to_pig(condition)
-      puts filter_plan
-      filter.set_filter_plan(filter_plan)      
+      filter_plan = LogicalExpression::Plan.new(pig_context, filter).to_pig(condition, in_foreach_plan, nest_context)
+      filter.set_filter_plan(filter_plan)
+
+      if in_nest_plan
+        LogicalOperator.build_nested(filter, @alias, current_plan, input_ops)
+      end
+      
       return filter      
     end    
     
   end
   
-  class ForEach
+  class ForEach < Operator
     attr_accessor :alias # Name of the output relation
     attr_accessor :input # Array of input relation (or inner bag) names
     attr_accessor :graph # Array of operators
 
+    # Internal
+    attr_accessor :operators, :expression_plans
+    
     def initialize aliaz, input, graph
       @alias = aliaz
       @input = input
@@ -366,19 +389,51 @@ module LogicalOperator
       to_hash.to_json
     end
 
-    def to_pig pig_context, current_plan, current_op
+    def to_pig pig_context, current_plan, current_op, nest_context = {}
       foreach    = LOForEach.new(current_plan)
       inner_plan = LogicalPlan.new
-      graph.each do |op|
-        op.to_pig(pig_context, inner_plan, foreach)
+
+      expression_plans = {}
+      operators        = {}
+
+      graph.each do |op|        
+        op.in_nest_plan    = true
+        op.in_foreach_plan = true
+        
+        if !op.is_a? Generate
+          op.input_ops = nested_op_inputs(op.input, foreach, inner_plan, operators)
+        end        
+        
+        pig_op = op.to_pig(pig_context, inner_plan, foreach, {:operators => operators, :expression_plans => expression_plans})
+        
+        if op.is_a? LogicalExpression::AssignmentExpression
+          expression_plans[op.alias] = pig_op
+        elsif !op.is_a? Generate
+          operators[op.alias]        = pig_op
+        end
+                
       end
       foreach.set_inner_plan(inner_plan)
       return foreach
     end
+
+    # inputs - list of input aliases    
+    def nested_op_inputs inputs, foreach, inner_plan, operators
+      ret = []
+      inputs.each do |input|
+        op = operators[input]
+        if !op
+          op = LOInnerLoad.new(inner_plan, foreach, input)
+          inner_plan.add(op)
+        end
+        ret << op
+      end
+      ret
+    end
     
   end
   
-  class Generate
+  class Generate < Operator
     attr_accessor :results  # Array of LogicalExpressions to generate
     attr_accessor :flattens # Array of booleans corresponding to which results to flatten 
 
@@ -405,7 +460,8 @@ module LogicalOperator
       to_hash.to_json
     end
     
-    def to_pig pig_context, current_plan, current_op
+    def to_pig pig_context, current_plan, current_op, nest_context = {}
+
       gen = LOGenerate.new(current_plan)
 
       plans = results.map do |result|
@@ -441,7 +497,7 @@ module LogicalOperator
       
       if op.is_a? ProjectExpression
         col_alias = op.get_col_alias        
-        if col_alias          
+        if col_alias
           projected = op.get_projected_operator
           if projected
             idx = inputs.index(projected)

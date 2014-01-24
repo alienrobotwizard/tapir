@@ -43,6 +43,8 @@ post '/plan' do
   compiler = LogicalPlanCompiler.new(pc)
   compiled = compiler.compile(plan)
 
+  puts "Launching #{compiled}"
+  
   engine = execution_engine(pc)
 
   engine.launch_pig(compiled, '', pc)
