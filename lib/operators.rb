@@ -465,7 +465,7 @@ module LogicalOperator
       gen = LOGenerate.new(current_plan)
 
       plans = results.map do |result|
-        LogicalExpression::Plan.new(pig_context, gen).to_pig(result)
+        LogicalExpression::Plan.new(pig_context, gen).to_pig(result, in_foreach_plan, nest_context)
       end
 
       inner_plan = gen.get_plan
@@ -503,7 +503,7 @@ module LogicalOperator
             idx = inputs.index(projected)
             if !idx
               idx = inputs.size
-              inputs.add(projected)
+              inputs << projected
             end
             op.set_input_num(idx)
             op.set_col_num(-1)            
