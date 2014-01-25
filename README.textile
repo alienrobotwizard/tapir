@@ -1,0 +1,121 @@
+h1. PigDsl
+
+PigDsl aims to allow specifying a Pig LogicalPlan fully as a json string. This allows the creation
+of logical plans from arbitrary languages that support json serialization without the need to write
+a single line of Pig latin code.
+
+
+Consider the following example pig script:
+
+<pre><code>
+$: cat test/dogs.pig
+
+input_data = load 'data/nestedfilter.tsv' as (source:chararray, docs:bag{t:tuple(text:chararray)});
+
+filtered = foreach input_data {
+             dogs = filter docs by text == 'dogs';
+             generate
+               flatten(dogs);
+           };
+
+store filtered into 'data/nested-filter-test-out';
+</code></pre>
+
+the equivalent json would be:
+
+
+<pre><code>
+$: cat test/nested-filter.json
+
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/nestedfilter.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          {
+            "name": "source",
+            "type": 55
+          },
+          {
+            "name": "docs",
+            "type": 120,
+            "schema" : {
+              "fields": [
+                {
+                  "name": "t",
+                  "type": 110,
+                  "schema": {
+                    "fields": [
+                      {
+                        "name":"text",
+                        "type":55
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "foreach",
+      "alias": "filtered",
+      "input": [
+        "input_data"
+      ],
+      "graph": [
+        {
+          "operator": "filter",
+          "alias": "dogs",
+          "input": ["docs"],
+          "condition": {
+            "type": "equal",
+            "lhs" : {
+              "type": "col_ref",
+              "alias": "text"
+            },
+            "rhs" : {
+              "type": "const",
+              "val" : "dogs"
+            }
+          }
+        },
+        {
+          "operator": "generate",
+          "results" : [
+            {
+              "type": "col_ref",
+              "alias": "dogs"
+            }
+          ],
+          "flattens": [true]
+        }
+      ]
+    },
+    {
+      "operator": "store",
+      "input": [
+        "filtered"
+      ],
+      "uri": "../test/data/nested-filter-test-out"
+    }
+  ]
+}
+</code></pre>
+
+Currently there exists a simple sinatra web server that'll listen for a post request of the logical plan json to '/plan'
+and run it with the Hadoop execution engine.
