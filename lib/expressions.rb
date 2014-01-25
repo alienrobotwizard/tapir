@@ -146,7 +146,6 @@ module LogicalExpression
       operators   = nest_context[:operators]
       expressions = nest_context[:expression_plans]
 
-      puts "Building nested for plan #{current_plan} and operators #{nest_context[:operators]} and expressions #{nest_context[:expression_plans]}"
       exp_plan = expressions[@alias]
       if exp_plan
         cp = exp_plan.deep_copy
