@@ -11,6 +11,7 @@ import 'org.apache.pig.parser.LogicalPlanBuilder'
 import 'org.apache.pig.impl.logicalLayer.schema.Schema'
 import 'org.apache.pig.newplan.logical.relational.LOLoad'
 import 'org.apache.pig.newplan.logical.relational.LOStore'
+import 'org.apache.pig.newplan.logical.relational.LOLimit'
 import 'org.apache.pig.newplan.logical.relational.LOFilter'
 import 'org.apache.pig.newplan.logical.relational.LOForEach'
 import 'org.apache.pig.newplan.logical.relational.LOGenerate'
@@ -309,6 +310,54 @@ module LogicalOperator
     end
     
   end
+
+  class Limit < Operator
+    attr_accessor :alias # Name of the output relation    
+    attr_accessor :input # Array of input relation (or inner bag) names
+
+    # FIXME: Limit is optionally, instead of a number, allowed a LogicalExpressionPlan
+    # This plan, afaik, is intended to allow the use of scalars to limit, which
+    # are not yet implemented.
+    attr_accessor :limit # Number specifying number of tuples
+
+    def initialize aliaz, input, limit
+      @alias = aliaz
+      @input = input
+      @limit = limit
+    end
+
+    def self.from_hash hsh
+      aliaz = hsh[:alias]
+      input = hsh[:input]
+      limit = hsh[:limit]
+      Limit.new(aliaz, input, limit)
+    end
+
+    def to_hash
+      {
+        :operator => 'limit',
+        :alias    => @alias,
+        :input    => input,
+        :limit    => limit
+      }
+    end
+
+    def to_json
+      to_hash.to_json
+    end
+
+    def to_pig pig_context, current_plan, current_op, nest_context = {}
+      
+      l = LOLimit.new(current_plan, limit)
+      
+      if in_nest_plan
+        LogicalOperator.build_nested(l, @alias, current_plan, input_ops)
+      end
+
+      return l
+    end    
+    
+  end
   
   class Filter < Operator
     attr_accessor :alias     # Name of the output relation
@@ -467,7 +516,7 @@ module LogicalOperator
       plans = results.map do |result|
         LogicalExpression::Plan.new(pig_context, gen).to_pig(result, in_foreach_plan, nest_context)
       end
-
+      
       inner_plan = gen.get_plan
       inputs     = []
 
@@ -475,15 +524,14 @@ module LogicalOperator
       plans.each_with_index do |plan, idx|
         LogicalOperator.process_expression_plan(current_op, inner_plan, plan, inputs)
       end
-
+      
       gen.set_output_plans(plans)
       gen.set_flatten_flags(flattens.to_java(:boolean))
       gen.set_user_defined_schema([]) # FIXME: Need to actually handle schema
       inner_plan.add(gen) # what witchcraft is this!?
-
+      
       # Connect generate's inputs to it
       inputs.each{|input| inner_plan.connect(input, gen) }
-      
     end
     
   end
@@ -530,7 +578,8 @@ module LogicalOperator
     'generate' => LogicalOperator::Generate,
     'load'     => LogicalOperator::Load,
     'store'    => LogicalOperator::Store,
-    'filter'   => LogicalOperator::Filter
+    'filter'   => LogicalOperator::Filter,
+    'limit'    => LogicalOperator::Limit
   }
   
 end

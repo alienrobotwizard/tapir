@@ -1,0 +1,42 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/words.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          {
+            "name": "txt",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "limit",
+      "alias": "lmt",
+      "input": [
+        "input_data"
+      ],
+      "limit": 1
+    },
+    
+    {
+      "operator": "store",
+      "input": [
+        "lmt"
+      ],
+      "uri": "../test/data/limit-test-out"
+    }
+  ]
+}
