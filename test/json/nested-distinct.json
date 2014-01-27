@@ -1,0 +1,78 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/nestedfilter.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          {
+            "name": "source",
+            "type": 55
+          },
+          {
+            "name": "docs",
+            "type": 120,
+            "schema" : {
+              "fields": [
+                {
+                  "name": "t",
+                  "type": 110,
+                  "schema": {
+                    "fields": [
+                      {
+                        "name":"text",
+                        "type":55
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "foreach",
+      "alias": "uniqued",
+      "input": [
+        "input_data"
+      ],
+      "graph": [
+        {
+          "operator": "distinct",
+          "alias": "uniq",
+          "input": ["docs"],
+          "limit" : 1
+        },        
+        {
+          "operator": "generate",
+          "results" : [
+            {
+              "type": "col_ref",
+              "alias": "uniq"
+            }
+          ],
+          "flattens": [true]
+        }
+      ]
+    },
+    {
+      "operator": "store",
+      "input": [
+        "uniqued"
+      ],
+      "uri": "../test/data/nested-distinct-test-out"
+    }
+  ]
+}

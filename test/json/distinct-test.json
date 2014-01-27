@@ -1,0 +1,40 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/things.tsv",
+      "alias": "letters",
+      "schema": {
+        "fields": [
+          {
+            "name": "txt",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "distinct",
+      "alias": "uniq",
+      "input": [
+        "letters"
+      ]
+    },
+    {
+      "operator": "store",
+      "input": [
+        "uniq"
+      ],
+      "uri": "../test/data/distinct-test-out"
+    }
+  ]
+}
