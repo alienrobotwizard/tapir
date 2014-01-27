@@ -163,6 +163,9 @@ module LogicalExpression
         schema.alias = @alias if !schema.alias
         
         root
+      elsif !@alias
+        # Project star
+        org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, -1, current_op)
       else
         org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, @alias, operators[@alias], current_op)
       end      
@@ -177,6 +180,9 @@ module LogicalExpression
         # FIXME: Add scalar here
         if in_foreach_plan
           build_nested(current_plan, current_op)
+        elsif !@alias
+          # Project star
+          org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, -1, current_op)
         else
           org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, @alias, nil, current_op)
         end        

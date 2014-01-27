@@ -1,0 +1,65 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/tosort.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          { "name": "letter", "type": 55 },
+          { "name": "other", "type":10 },
+          {
+            "name": "numbers",
+            "type": 120,
+            "schema" : { "fields": [ { "name": "t", "type": 110, "schema": { "fields": [ { "name":"number", "type":10 } ] } } ] }
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    {
+      "operator": "sort",
+      "alias": "sorted",
+      "input": [
+        "input_data"
+      ]      
+    },
+    {
+      "operator": "foreach",
+      "alias":"nested_sort",
+      "input": [
+        "sorted"
+      ],
+      "graph": [
+        {
+          "operator": "sort",
+          "alias": "by_num",
+          "input": [
+            "numbers"
+          ],
+          "columns" : [{"type":"col_ref","alias":"number"}],
+          "orders" : ["desc"]
+        },
+        {
+          "operator": "generate",
+          "results" : [{"type":"col_ref", "alias":"letter"},{"type":"col_ref", "alias":"other"},{"type":"col_ref", "alias":"by_num"}],
+          "flattens": [false,false,false]
+        }
+      ]
+    },
+    {
+      "operator": "store",
+      "input": [
+        "nested_sort"
+      ],
+      "uri": "../test/data/sort-test-out"
+    }
+  ]
+}
