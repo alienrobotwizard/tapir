@@ -15,6 +15,8 @@ module LogicalOperator
 
   class Operator
     attr_accessor :in_nest_plan, :in_foreach_plan, :input_ops
+    # Optional
+    attr_accessor :parallel_hint, :partitioner
   end
 
   OPERATORS = {
@@ -60,6 +62,12 @@ module LogicalOperator
   def self.set_partitioner(op, partitioner)
     if (partitioner)
       op.set_custom_partitioner(partitioner)
+    end
+  end
+
+  def self.set_parallelism_hint(op, parallel)
+    if (parallel)
+      op.set_requested_parallelism(parallel)
     end
   end
 

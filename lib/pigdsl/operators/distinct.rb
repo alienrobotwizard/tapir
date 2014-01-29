@@ -2,7 +2,6 @@ import 'org.apache.pig.newplan.logical.relational.LODistinct'
 
 module LogicalOperator
 
-    # FIXME - need to be able to specify parallelism hints and partitioner hints?
   class Distinct < Operator
     attr_accessor :alias # Name of the output relation
     attr_accessor :input # Array of input relation (or inner bag) names

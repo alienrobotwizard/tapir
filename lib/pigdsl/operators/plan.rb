@@ -36,7 +36,10 @@ module LogicalOperator
 
     def build hsh
       @properties = hsh[:properties]
-      @graph      = hsh[:graph].map{|op| LogicalOperator.from_hash(op) }
+      @graph      = hsh[:graph].map do |op|
+        lo = LogicalOperator.from_hash(op)
+        attach_hints(lo, op)        
+      end      
     end
     
     def to_hash
@@ -64,26 +67,36 @@ module LogicalOperator
           file_name_map[key] = op.uri
           
           pig_op = op.to_pig(pig_context, current_plan, nil)
-          build_op(pig_op, op.alias, [], nil)
+          build_op(pig_op, op.alias, [], op.parallel_hint, op.partitioner)
         when Store then
           key                = op.set_absolute_path(pig_context, store_index, file_name_map)
           store_index       += 1
           file_name_map[key] = op.uri
 
           pig_op = op.to_pig(pig_context, current_plan, nil)
-          build_op(pig_op, nil, op.input, nil)
+          build_op(pig_op, nil, op.input, op.parallel_hint, op.partitioner)
         else
           pig_op = op.to_pig(pig_context, current_plan, nil)
-          build_op(pig_op, op.alias, op.input, nil)
+          build_op(pig_op, op.alias, op.input, op.parallel_hint, op.partitioner)
         end
       end
       
       current_plan
     end    
+
+    #
+    # Attach parallelism hints and custom partitioner, if any
+    #
+    def attach_hints lo, hsh
+      lo.partitioner   = hsh[:partitioner]
+      lo.parallel_hint = hsh[:parallel_hint]
+      lo
+    end    
     
-    def build_op op, aliaz, input_aliazes, partitioner
+    def build_op op, aliaz, input_aliazes, parallel_hint, partitioner
       LogicalOperator.set_alias(op, aliaz)
       LogicalOperator.set_partitioner(op, partitioner)
+      LogicalOperator.set_parallelism_hint(op, parallel_hint)
       op.set_location(org.apache.pig.parser.SourceLocation.new('',0,0)) # increment a counter or some such
       
       current_plan.add(op)
