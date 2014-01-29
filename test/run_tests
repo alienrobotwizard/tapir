@@ -1,0 +1,51 @@
+require 'rubygems'
+require 'rake'
+
+tests = {
+  :distinct        => 'distinct-test.json',
+  :foreach         => 'foreach-test.json',
+  :nested_distinct => 'nested-distinct.json',
+  :nested_limit    => 'nested-limit.json',
+  :filter          => 'filter-test.json',
+  :limit           => 'limit-test.json',
+  :nested_filter   => 'nested-filter.json',
+  :order           => 'order-test.json'
+}
+
+to_run = [:clean, :test_distinct, :test_foreach, :test_limit, :test_filter, :test_order]
+
+def run_test json
+  sh "curl -XPOST \"http://localhost:4567/plan\" -d @json/#{json}"
+end
+
+task :test_distinct do
+  run_test(tests[:distinct])
+  run_test(tests[:nested_distinct])
+end
+
+task :test_foreach do
+  run_test(tests[:foreach])
+end
+
+task :test_limit do
+  run_test(tests[:limit])
+  run_test(tests[:nested_limit])
+end
+
+task :test_filter do
+  run_test(tests[:filter])
+  run_test(tests[:nested_filter])
+end
+
+task :test_order do
+  run_test(tests[:order])
+end
+
+
+task :clean do
+  rm_r FileList["data/*out"]
+end
+
+
+task :test => to_run do
+end

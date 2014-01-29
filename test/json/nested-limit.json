@@ -72,7 +72,7 @@
       "input": [
         "limited"
       ],
-      "uri": "../test/data/nested-filter-test-out"
+      "uri": "../test/data/nested-limit-test-out"
     }
   ]
 }

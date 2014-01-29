@@ -7,6 +7,6 @@ require 'json'
 jars = Dir[File.join(ENV['PIG_HOME'], 'pig*.jar')].reject{|j| j =~ /withouthadoop/}
 jars.each{|j| require j}
 
-require 'expressions'
-require 'operators'
-require 'compiler'
+autoload :LogicalExpression,   'pigdsl/expressions'
+autoload :LogicalOperator,     'pigdsl/operators'
+autoload :LogicalPlanCompiler, 'pigdsl/compiler'
