@@ -1,0 +1,74 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/leftside.tsv",
+      "alias": "leftside",
+      "schema": {
+        "fields": [
+          {
+            "name": "key",
+            "type": 55
+          },
+          {
+            "name": "left_data",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+
+    {
+      "operator": "load",
+      "uri": "../test/data/rightside.tsv",
+      "alias": "rightside",
+      "schema": {
+        "fields": [
+          {
+            "name": "key",
+            "type": 55
+          },
+          {
+            "name": "right_data",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "join",
+      "alias": "joined",
+      "input": [
+        "leftside",
+        "rightside"
+      ],
+      "by": {
+        "leftside": [{"type": "col_ref","alias": "key"}],
+        "rightside": [{"type": "col_ref","alias": "key"}]
+      },
+      "join_type":"inner"
+    },
+    
+    {
+      "operator": "store",
+      "input": [
+        "joined"
+      ],
+      "uri": "../test/data/join-test-out"
+    }
+  ]
+}

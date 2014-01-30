@@ -12,6 +12,7 @@ module LogicalOperator
   autoload :Filter,   'pigdsl/operators/filter'
   autoload :ForEach,  'pigdsl/operators/foreach'
   autoload :Generate, 'pigdsl/operators/generate'
+  autoload :Join,     'pigdsl/operators/join'
 
   class Operator
     attr_accessor :in_nest_plan, :in_foreach_plan, :input_ops
@@ -27,7 +28,8 @@ module LogicalOperator
     'filter'   => LogicalOperator::Filter,
     'limit'    => LogicalOperator::Limit,
     'distinct' => LogicalOperator::Distinct,
-    'sort'     => LogicalOperator::Sort
+    'sort'     => LogicalOperator::Sort,
+    'join'     => LogicalOperator::Join
   }
 
 

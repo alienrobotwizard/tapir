@@ -9,7 +9,8 @@ tests = {
   :filter          => 'filter-test.json',
   :limit           => 'limit-test.json',
   :nested_filter   => 'nested-filter.json',
-  :order           => 'order-test.json'
+  :order           => 'order-test.json',
+  :join            => 'join-test.json'
 }
 
 to_run = [:clean, :test_distinct, :test_foreach, :test_limit, :test_filter, :test_order]
@@ -41,6 +42,9 @@ task :test_order do
   run_test(tests[:order])
 end
 
+task :test_join do
+  run_test(tests[:join])
+end
 
 task :clean do
   rm_r FileList["data/*out"]

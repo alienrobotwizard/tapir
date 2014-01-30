@@ -105,7 +105,7 @@ module LogicalOperator
         pred = operators.get(a)
         current_plan.connect(pred, op)      
       end
-
+      
       @operators.put(op.get_alias, op)
       pig_context.set_last_alias(op.get_alias)
       return op.get_alias
