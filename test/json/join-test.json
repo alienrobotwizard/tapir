@@ -51,7 +51,7 @@
     
     {
       "operator": "join",
-      "alias": "joined",
+      "alias": "inner_joined",
       "input": [
         "leftside",
         "rightside"
@@ -62,13 +62,102 @@
       },
       "join_type":"inner"
     },
+
+    {
+      "operator": "join",
+      "alias": "outer_joined",
+      "input": [
+        "leftside",
+        "rightside"
+      ],
+      "by": {
+        "leftside": [{"type": "col_ref","alias": "key"}],
+        "rightside": [{"type": "col_ref","alias": "key"}]
+      },
+      "join_type":"full"
+    },
+
+    {
+      "operator": "join",
+      "alias": "left_outer_joined",
+      "input": [
+        "leftside",
+        "rightside"
+      ],
+      "by": {
+        "leftside": [{"type": "col_ref","alias": "key"}],
+        "rightside": [{"type": "col_ref","alias": "key"}]
+      },
+      "join_type":"left"
+    },
+
+    {
+      "operator": "join",
+      "alias": "right_outer_joined",
+      "input": [
+        "leftside",
+        "rightside"
+      ],
+      "by": {
+        "leftside": [{"type": "col_ref","alias": "key"}],
+        "rightside": [{"type": "col_ref","alias": "key"}]
+      },
+      "join_type":"right"
+    },
+
+    {
+      "operator": "join",
+      "alias": "replicated_join",
+      "input": [
+        "leftside",
+        "rightside"
+      ],
+      "by": {
+        "leftside": [{"type": "col_ref","alias": "key"}],
+        "rightside": [{"type": "col_ref","alias": "key"}]
+      },
+      "join_type":"inner",
+      "strategy":"replicated"
+    },
     
     {
       "operator": "store",
       "input": [
-        "joined"
+        "inner_joined"
       ],
-      "uri": "../test/data/join-test-out"
+      "uri": "../test/data/inner-join-test-out"
+    },
+
+    {
+      "operator": "store",
+      "input": [
+        "outer_joined"
+      ],
+      "uri": "../test/data/outer-join-test-out"
+    },
+
+    {
+      "operator": "store",
+      "input": [
+        "left_outer_joined"
+      ],
+      "uri": "../test/data/left-outer-join-test-out"
+    },
+
+    {
+      "operator": "store",
+      "input": [
+        "right_outer_joined"
+      ],
+      "uri": "../test/data/right-outer-join-test-out"
+    },
+
+    {
+      "operator": "store",
+      "input": [
+        "replicated_join"
+      ],
+      "uri": "../test/data/replicated-join-test-out"
     }
   ]
 }
