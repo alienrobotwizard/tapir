@@ -1,6 +1,7 @@
 #!/usr/bin/env jruby
 
 require 'java'
+require 'json'
 
 PIG_JAR = Dir[File.join(ENV['PIG_HOME'], 'pig*.jar')].reject{|j| j =~ /withouthadoop/}.first
 
@@ -29,6 +30,9 @@ import 'org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor'
 import 'org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover'
 import 'org.apache.pig.impl.plan.CompilationMessageCollector'
 
+$: << File.dirname(__FILE__)+'/../lib'
+require 'pigdsl'
+
 class LogicalPlanServer < PigServer
 
   #
@@ -37,13 +41,13 @@ class LogicalPlanServer < PigServer
   # penny does. Probably isn't great going forward
   # but works for now
   #
-  def get_logical_plan script
+  def get_logical_plan script    
     parser = GruntParser.new(BufferedReader.new(FileReader.new(script)))
     parser.set_interactive(false)
     parser.set_params(self)
     set_batch_on
     parser.parse_only
-    currentDAG.get_logical_plan
+    currentDAG.get_logical_plan  
   end
   
 end
@@ -89,8 +93,16 @@ class PigParser
   end
   
   def get_logical_plan script
-    plan = pig_server.get_logical_plan(script)
-    compile(plan)
+    if script.end_with? '.pig'
+      plan = pig_server.get_logical_plan(script)
+      compile(plan)
+    elsif script.end_with? '.json'
+      json     = JSON.parse(File.read(script), {:symbolize_names => true})
+      compiler = LogicalPlanCompiler.new(pig_context)
+      plan     = compiler.compile(json)
+    else
+      raise ArgumentError, "Please specify a valid pig (.pig) script or json (.json) logical plan dag"
+    end    
     plan
   end
   
