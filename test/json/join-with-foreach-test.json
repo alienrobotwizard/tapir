@@ -1,0 +1,94 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/leftside.tsv",
+      "alias": "leftside",
+      "schema": {
+        "fields": [
+          {
+            "name": "key",
+            "type": 55
+          },
+          {
+            "name": "left_data",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+
+    {
+      "operator": "load",
+      "uri": "../test/data/rightside.tsv",
+      "alias": "rightside",
+      "schema": {
+        "fields": [
+          {
+            "name": "key",
+            "type": 55
+          },
+          {
+            "name": "right_data",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "join",
+      "alias": "inner_joined",
+      "input": [
+        "leftside",
+        "rightside"
+      ],
+      "by": {
+        "leftside": [{"type": "col_ref","alias": "key"}],
+        "rightside": [{"type": "col_ref","alias": "key"}]
+      },
+      "join_type":"inner"
+    },
+
+    {
+      "operator": "foreach",
+      "alias": "projected",
+      "input": [
+        "inner_joined"
+      ],
+      "graph": [
+        {
+          "operator": "generate",
+          "results" : [
+            {"type":"col_ref", "alias":"leftside::key"},
+            {"type":"col_ref", "alias":"leftside::left_data"},
+            {"type":"col_ref", "alias":"rightside::right_data"}
+          ],
+          "flattens": [false, false, false]
+        }
+      ]
+    },
+    
+    {
+      "operator": "store",
+      "input": [
+        "projected"
+      ],
+      "uri": "../test/data/join-with-foreach-test-out"
+    }
+
+  ]
+}

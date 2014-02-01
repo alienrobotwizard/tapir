@@ -47,9 +47,9 @@ module LogicalExpression
         root
       elsif !@alias
         # Project star
-        org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, -1, current_op)
+        org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, input_index.to_java(:int), -1, current_op)
       else
-        org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, @alias, operators[@alias], current_op)
+        org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, input_index.to_java(:int), @alias, operators[@alias], current_op)
       end      
     end
     
@@ -64,9 +64,9 @@ module LogicalExpression
           build_nested(current_plan, current_op)
         elsif !@alias
           # Project star
-          org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, -1, current_op)
-        else
-          org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, @alias, nil, current_op)
+          org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, input_index.to_java(:int), -1, current_op)
+        else          
+          org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, input_index.to_java(:int), @alias, nil, current_op)
         end        
       end      
     end

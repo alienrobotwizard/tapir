@@ -34,7 +34,10 @@ module LogicalOperator
 
       gen = LOGenerate.new(current_plan)
 
+      input_index = 0
       plans = results.map do |result|
+        result.input_index = input_index
+        input_index += 1
         LogicalExpression::Plan.new(pig_context, gen).to_pig(result, in_foreach_plan, nest_context)
       end
       

@@ -34,8 +34,9 @@ module LogicalOperator
     end
 
     def to_pig pig_context, current_plan, current_op, nest_context = {}
-      filter      = LOFilter.new(current_plan)
-      filter_plan = LogicalExpression::Plan.new(pig_context, filter).to_pig(condition, in_foreach_plan, nest_context)
+      filter                = LOFilter.new(current_plan)
+      condition.input_index = 0
+      filter_plan           = LogicalExpression::Plan.new(pig_context, filter).to_pig(condition, in_foreach_plan, nest_context)
       filter.set_filter_plan(filter_plan)
 
       if in_nest_plan

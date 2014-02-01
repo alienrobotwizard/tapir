@@ -56,8 +56,16 @@ module LogicalOperator
       join        = LOJoin.new(current_plan)
       join_plans  = MultiMap.new()
 
+      input_index = 0
       input.each_with_index do |aliaz, idx|
-        plans = by[aliaz.to_sym].map{|x| LogicalExpression::Plan.new(pig_context, join).to_pig(x, false, {}) }
+
+        # Join columns
+        plans = by[aliaz.to_sym].map do |x|
+          x.input_index = input_index
+          input_index  += 1
+          LogicalExpression::Plan.new(pig_context, join).to_pig(x, false, {})
+        end
+        
         join_plans.put(idx.to_java(:int), plans)
       end
 

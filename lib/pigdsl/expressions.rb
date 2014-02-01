@@ -30,7 +30,7 @@ module LogicalExpression
   end
  
   class Expression
-    attr_accessor :in_nest_plan, :in_foreach_plan, :nest_context
+    attr_accessor :in_nest_plan, :in_foreach_plan, :nest_context, :input_index
   end
     
   EXPRESSIONS = {

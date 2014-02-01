@@ -10,10 +10,11 @@ tests = {
   :limit           => 'limit-test.json',
   :nested_filter   => 'nested-filter.json',
   :order           => 'order-test.json',
-  :join            => 'join-test.json'
+  :join            => 'join-test.json',
+  :join_foreach    => 'join-with-foreach-test.json'
 }
 
-to_run = [:clean, :test_distinct, :test_foreach, :test_limit, :test_filter, :test_order]
+to_run = [:clean, :test_distinct, :test_foreach, :test_limit, :test_filter, :test_order, :test_join, :test_join_foreach]
 
 def run_test json
   sh "curl -XPOST \"http://localhost:4567/plan\" -d @json/#{json}"
@@ -44,6 +45,10 @@ end
 
 task :test_join do
   run_test(tests[:join])
+end
+
+task :test_join_foreach do
+  run_test(tests[:join_foreach])
 end
 
 task :clean do

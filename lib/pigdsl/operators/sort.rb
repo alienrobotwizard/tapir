@@ -56,8 +56,10 @@ module LogicalOperator
         flags.add(order.eql?('asc') ? true : false)
       end
       
-      
+      input_index = 0
       plans = columns.map do |col|
+        col.input_index = input_index
+        input_index += 1
         LogicalExpression::Plan.new(pig_context, sort).to_pig(col, in_foreach_plan, nest_context)
       end      
       cf    = (compare_func ? LogicalOperator.spec_for_name(compare_func) : nil)
