@@ -6,7 +6,7 @@ module LogicalOperator
   class Join < Operator
     attr_accessor :alias     # Name of the output relation
     attr_accessor :input     # Array of input relation names
-    attr_accessor :by        # Map of :relation_name => [col_ref]
+    attr_accessor :by        # Map of :relation_name => [col_ref] or [const]
 
     # One of (left, right, full, inner). default => 'inner'
     attr_accessor :join_type

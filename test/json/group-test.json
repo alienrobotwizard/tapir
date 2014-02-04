@@ -1,0 +1,68 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/words.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          {
+            "name": "txt",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "foreach",
+      "alias": "tokenized",
+      "input": [
+        "input_data"
+      ],
+      "graph": [
+        {
+          "operator": "generate",
+          "results" : [
+            {
+              "type": "func_eval",
+              "func": "TOKENIZE",
+              "args": [ {"type": "col_ref", "alias": "txt"} ]
+            }
+          ],
+          "as": [
+            {"fields": [ {"name": "token", "type": 55} ] }
+          ],
+          "flattens": [true]
+        }
+      ]
+    },
+
+    {
+      "operator": "group",
+      "alias" : "grouped",
+      "input" : [
+        "tokenized"
+      ],
+      "by" : {
+        "tokenized": [{"type": "col_ref","alias": "token"}]
+      }
+    },
+    
+    {
+      "operator": "store",
+      "input": [
+        "grouped"
+      ],
+      "uri": "../test/data/group-test-out"
+    }
+  ]
+}
