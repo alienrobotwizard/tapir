@@ -1,0 +1,108 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+
+    {
+      "operator": "load",
+      "uri": "../test/data/leftmulti.tsv",
+      "alias": "leftside",
+      "schema": {
+        "fields": [
+          {
+            "name": "key_one",
+            "type": 55
+          },
+          {
+            "name": "key_two",
+            "type": 10
+          },
+          {
+            "name": "left_data",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+
+    {
+      "operator": "load",
+      "uri": "../test/data/rightmulti.tsv",
+      "alias": "rightside",
+      "schema": {
+        "fields": [
+          {
+            "name": "key_one",
+            "type": 55
+          },
+          {
+            "name": "key_two",
+            "type": 10
+          },
+          {
+            "name": "right_data",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+
+    
+    {
+      "operator": "group",
+      "alias" : "cogrouped",
+      "input" : [
+        "leftside",
+        "rightside"
+      ],
+      "by" : {
+        "leftside":  [{"type": "col_ref","alias": "key_one"}, {"type": "col_ref","alias": "key_two"}],
+        "rightside": [{"type": "col_ref","alias": "key_one"}, {"type": "col_ref","alias": "key_two"}]
+      },
+      "inner": {
+        "leftside": true
+      }
+    },
+
+    {
+      "operator": "join",
+      "alias" : "joined",
+      "input" : [
+        "leftside",
+        "rightside"
+      ],
+      "by" : {
+        "leftside":  [{"type": "col_ref","alias": "key_one"}, {"type": "col_ref","alias": "key_two"}],
+        "rightside": [{"type": "col_ref","alias": "key_one"}, {"type": "col_ref","alias": "key_two"}]
+      }
+    },
+    
+    {
+      "operator": "store",
+      "input": [
+        "cogrouped"
+      ],
+      "uri": "../test/data/multikey-test-out/cogroup"
+    },
+
+    {
+      "operator": "store",
+      "input": [
+        "joined"
+      ],
+      "uri": "../test/data/multikey-test-out/join"
+    }
+    
+  ]
+}

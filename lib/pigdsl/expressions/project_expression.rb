@@ -65,7 +65,7 @@ module LogicalExpression
         elsif !@alias
           # Project star
           org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, input_index.to_java(:int), -1, current_op)
-        else          
+        else
           org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, input_index.to_java(:int), @alias, nil, current_op)
         end        
       end      

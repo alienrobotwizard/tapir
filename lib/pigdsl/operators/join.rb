@@ -56,10 +56,10 @@ module LogicalOperator
       join        = LOJoin.new(current_plan)
       join_plans  = MultiMap.new()
 
-      input_index = 0
       input.each_with_index do |aliaz, idx|
 
         # Join columns
+        input_index = 0
         plans = by[aliaz.to_sym].map do |x|
           x.input_index = input_index
           input_index  += 1

@@ -56,11 +56,11 @@ module LogicalOperator
       group       = LOCogroup.new(current_plan)
       group_plans = MultiMap.new()
 
-      input_index = 0
       inner_flags = []
       input.each_with_index do |aliaz, idx|
         sym_alias = aliaz.to_sym
-        
+
+        input_index = 0
         plans = by[sym_alias].map do |x|
           x.input_index = input_index
           input_index  += 1
