@@ -12,10 +12,15 @@ tests = {
   :order           => 'order-test.json',
   :join            => 'join-test.json',
   :join_foreach    => 'join-with-foreach-test.json',
-  :group           => 'group-test.json'
+  :group           => 'group-test.json',
+  :cogroup         => 'cogroup-test.json'
 }
 
-to_run = [:clean, :test_distinct, :test_foreach, :test_limit, :test_filter, :test_order, :test_join, :test_join_foreach, :test_group]
+to_run = [
+  :clean, :test_distinct, :test_foreach, :test_limit,
+  :test_filter, :test_order, :test_join, :test_join_foreach,
+  :test_group, :test_cogroup
+]
 
 def run_test json
   sh "curl -XPOST \"http://localhost:4567/plan\" -d @json/#{json}"
@@ -55,6 +60,11 @@ end
 task :test_group do
   run_test(tests[:group])
 end
+
+task :test_cogroup do
+  run_test(tests[:cogroup])
+end
+
 
 task :clean do
   rm_r FileList["data/*out"]

@@ -3,6 +3,7 @@
     "exectype": "local"
   },
   "graph": [
+    
     {
       "operator": "load",
       "uri": "../test/data/words.tsv",

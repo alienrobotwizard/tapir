@@ -1,0 +1,78 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+
+    {
+      "operator": "load",
+      "uri": "../test/data/leftside.tsv",
+      "alias": "leftside",
+      "schema": {
+        "fields": [
+          {
+            "name": "key",
+            "type": 55
+          },
+          {
+            "name": "left_data",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+
+    {
+      "operator": "load",
+      "uri": "../test/data/rightside.tsv",
+      "alias": "rightside",
+      "schema": {
+        "fields": [
+          {
+            "name": "key",
+            "type": 55
+          },
+          {
+            "name": "right_data",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+
+    
+    {
+      "operator": "group",
+      "alias" : "cogrouped",
+      "input" : [
+        "leftside",
+        "rightside"
+      ],
+      "by" : {
+        "leftside": [{"type": "col_ref","alias": "key"}],
+        "rightside": [{"type": "col_ref","alias": "key"}]
+      },
+      "inner": {
+        "leftside": true
+      }
+    },
+    
+    {
+      "operator": "store",
+      "input": [
+        "cogrouped"
+      ],
+      "uri": "../test/data/cogroup-test-out"
+    }
+  ]
+}
