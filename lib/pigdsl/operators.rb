@@ -3,17 +3,18 @@ import 'org.apache.pig.parser.LogicalPlanBuilder'
 
 module LogicalOperator
 
-  autoload :Plan,     'pigdsl/operators/plan'
-  autoload :Load,     'pigdsl/operators/load'
-  autoload :Store,    'pigdsl/operators/store'
-  autoload :Sort,     'pigdsl/operators/sort'
-  autoload :Limit,    'pigdsl/operators/limit'
-  autoload :Distinct, 'pigdsl/operators/distinct'
-  autoload :Filter,   'pigdsl/operators/filter'
-  autoload :ForEach,  'pigdsl/operators/foreach'
-  autoload :Generate, 'pigdsl/operators/generate'
-  autoload :Join,     'pigdsl/operators/join'
-  autoload :Group,    'pigdsl/operators/group'
+  autoload :Plan,       'pigdsl/operators/plan'
+  autoload :Load,       'pigdsl/operators/load'
+  autoload :Store,      'pigdsl/operators/store'
+  autoload :Sort,       'pigdsl/operators/sort'
+  autoload :Limit,      'pigdsl/operators/limit'
+  autoload :Distinct,   'pigdsl/operators/distinct'
+  autoload :Filter,     'pigdsl/operators/filter'
+  autoload :ForEach,    'pigdsl/operators/foreach'
+  autoload :Generate,   'pigdsl/operators/generate'
+  autoload :Join,       'pigdsl/operators/join'
+  autoload :Group,      'pigdsl/operators/group'
+  autoload :Split,      'pigdsl/operators/split'
 
   class Operator
     attr_accessor :in_nest_plan, :in_foreach_plan, :input_ops
@@ -22,16 +23,17 @@ module LogicalOperator
   end
 
   OPERATORS = {
-    'foreach'  => LogicalOperator::ForEach,
-    'generate' => LogicalOperator::Generate,
-    'load'     => LogicalOperator::Load,
-    'store'    => LogicalOperator::Store,
-    'filter'   => LogicalOperator::Filter,
-    'limit'    => LogicalOperator::Limit,
-    'distinct' => LogicalOperator::Distinct,
-    'sort'     => LogicalOperator::Sort,
-    'join'     => LogicalOperator::Join,
-    'group'    => LogicalOperator::Group
+    'foreach'     => LogicalOperator::ForEach,
+    'generate'    => LogicalOperator::Generate,
+    'load'        => LogicalOperator::Load,
+    'store'       => LogicalOperator::Store,
+    'filter'      => LogicalOperator::Filter,
+    'limit'       => LogicalOperator::Limit,
+    'distinct'    => LogicalOperator::Distinct,
+    'sort'        => LogicalOperator::Sort,
+    'join'        => LogicalOperator::Join,
+    'group'       => LogicalOperator::Group,
+    'split'       => LogicalOperator::Split
   }
 
 

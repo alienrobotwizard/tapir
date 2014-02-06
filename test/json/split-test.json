@@ -1,0 +1,82 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/tosplit.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          {
+            "name": "txt",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "split",
+      "input": [
+        "input_data"
+      ],
+      "splits": {
+        "type1": {
+          "type":"equal",
+          "lhs": {"type":"col_ref","alias":"txt"},
+          "rhs": {"type":"const", "val":"type1"}
+        },
+        "type2": {
+          "type":"equal",
+          "lhs": {"type":"col_ref","alias":"txt"},
+          "rhs": {"type":"const", "val":"type2"}
+        },
+        "type3": {
+          "type":"equal",
+          "lhs": {"type":"col_ref","alias":"txt"},
+          "rhs": {"type":"const", "val":"type3"}
+        }
+      },
+      "otherwise":"not_like_the_others"
+    },
+    
+    {
+      "operator": "store",
+      "input": [
+        "type1"
+      ],
+      "uri": "../test/data/split-test-out/type1"
+    },
+
+    {
+      "operator": "store",
+      "input": [
+        "type2"
+      ],
+      "uri": "../test/data/split-test-out/type2"
+    },
+
+    {
+      "operator": "store",
+      "input": [
+        "type3"
+      ],
+      "uri": "../test/data/split-test-out/type3"
+    },
+
+    {
+      "operator": "store",
+      "input": [
+        "not_like_the_others"
+      ],
+      "uri": "../test/data/split-test-out/not_like_the_others"
+    }
+  ]
+}

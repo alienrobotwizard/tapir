@@ -14,13 +14,14 @@ tests = {
   :join_foreach    => 'join-with-foreach-test.json',
   :group           => 'group-test.json',
   :cogroup         => 'cogroup-test.json',
-  :multikey        => 'multikey-test.json'
+  :multikey        => 'multikey-test.json',
+  :split           => 'split-test.json'
 }
 
 to_run = [
   :clean, :test_distinct, :test_foreach, :test_limit,
   :test_filter, :test_order, :test_join, :test_join_foreach,
-  :test_group, :test_cogroup, :test_multikey
+  :test_group, :test_cogroup, :test_multikey, :test_split
 ]
 
 def run_test json
@@ -68,6 +69,10 @@ end
 
 task :test_multikey do
   run_test(tests[:multikey])
+end
+
+task :test_split do
+  run_test(tests[:split])
 end
 
 

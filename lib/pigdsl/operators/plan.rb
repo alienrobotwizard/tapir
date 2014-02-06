@@ -75,6 +75,15 @@ module LogicalOperator
 
           pig_op = op.to_pig(pig_context, current_plan, nil)
           build_op(pig_op, nil, op.input, op.parallel_hint, op.partitioner)
+        when Split then
+          pig_op = op.to_pig(pig_context, current_plan, nil)
+          aliaz  = build_op(pig_op, nil, op.input, op.parallel_hint, op.partitioner)
+          
+          # splits
+          op.get_splits.each do |output|
+            build_op(output[:pig_op], output[:alias], [aliaz], op.parallel_hint, op.partitioner)
+          end
+          
         else
           pig_op = op.to_pig(pig_context, current_plan, nil)
           build_op(pig_op, op.alias, op.input, op.parallel_hint, op.partitioner)
