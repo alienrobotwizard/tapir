@@ -1,0 +1,82 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+
+  "registers": [
+    {
+      "resource": "../test/resources/udf/testudf.py",
+      "using": "jython",
+      "namespace": "testudf"
+    }
+  ],
+
+  "graph" : [
+
+    {
+      "operator": "load",
+      "uri": "../test/data/words.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          {
+            "name": "txt",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+
+    {
+      "operator": "foreach",
+      "alias": "tokens",
+      "input": [
+        "input_data"
+      ],
+      "graph": [
+        {
+          "operator":"generate",
+          "results" : [
+            {
+              "type": "func_eval",
+              "func": "TOKENIZE",
+              "args": [
+                {
+                  "type": "col_ref",
+                  "alias": "txt"
+                }
+              ]
+            },
+
+            {
+              "type": "func_eval",
+              "func": "testudf.test",
+              "args": [
+                {
+                  "type": "col_ref",
+                  "alias": "txt"
+                }
+              ]
+            }
+          ],
+          "flattens":[
+            true, false
+          ]
+        }
+      ]
+    },
+
+    {
+      "operator": "store",
+      "input": [
+        "tokens"
+      ],
+      "uri": "../test/data/register-test-out"
+    }
+  ]
+}

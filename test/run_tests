@@ -15,7 +15,8 @@ tests = {
   :group           => 'group-test.json',
   :cogroup         => 'cogroup-test.json',
   :multikey        => 'multikey-test.json',
-  :split           => 'split-test.json'
+  :split           => 'split-test.json',
+  :register        => 'register-test.json'
 }
 
 to_run = [
@@ -73,6 +74,10 @@ end
 
 task :test_split do
   run_test(tests[:split])
+end
+
+task :test_register do
+  run_test(tests[:register])
 end
 
 
