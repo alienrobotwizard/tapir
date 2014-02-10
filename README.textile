@@ -1,9 +1,9 @@
-h1. PigDsl
+h1. Tapir
 
-PigDsl aims to allow specifying a Pig LogicalPlan fully as a json string. This allows the creation
+Tapir aims to allow specifying an Apache Pig LogicalPlan fully as a json string. This allows the creation
 of logical plans from arbitrary languages that support json serialization without the need to write
-a single line of Pig latin code.
-
+a single line of Pig latin code. That is, the json maps directly to a LogicalPlan and *does not* compile to
+pig latin syntax. A tapir is 'similar' to a pig but is NOT a pig.
 
 Consider the following example pig script:
 
@@ -119,3 +119,7 @@ $: cat test/nested-filter.json
 
 Currently there exists a simple sinatra web server that'll listen for a post request of the logical plan json to '/plan'
 and run it with the Hadoop execution engine.
+
+h2. Why is it called Tapir?
+
+A tapir is a small weird mammal "similar in shape to a pig". But it is *not* a pig. 
