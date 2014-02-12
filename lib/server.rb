@@ -46,7 +46,7 @@ end
 #
 
 # Register jars or scripting udfs
-def process_registers pig_server, registers=[]
+def process_registers pig_server, registers
   registers.each do |register|
     resource = register[:resource]
     if register.has_key? :using
@@ -75,7 +75,7 @@ post '/plan' do
   pc    = pig_context(props)
   ps    = pig_server(pc)
 
-  process_registers(ps, plan[:registers])
+  process_registers(ps, (plan[:registers]||[]))
   
   if plan[:graph]
     compiler = LogicalPlanCompiler.new(pc)
