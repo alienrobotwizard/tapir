@@ -66,7 +66,8 @@ module LogicalExpression
           # Project star
           org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, input_index.to_java(:int), -1, current_op)
         else
-          org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, input_index.to_java(:int), @alias, nil, current_op)
+          # FIXME - Jruby 1.6.7 (for pig); use 0 instead of to_int...
+          org.apache.pig.newplan.logical.expression.ProjectExpression.new(current_plan, 0, @alias, nil, current_op)
         end        
       end      
     end
