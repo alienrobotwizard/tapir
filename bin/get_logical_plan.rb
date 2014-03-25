@@ -3,8 +3,12 @@
 require 'java'
 require 'json'
 
-PIG_JAR = Dir[File.join(ENV['PIG_HOME'], 'pig*.jar')].reject{|j| j =~ /withouthadoop/}.first
+#
+# ---- Works with Pig 0.12 API ----
+#
 
+
+PIG_JAR = Dir[File.join(ENV['PIG_HOME'], 'pig.jar')].reject{|j| j =~ /withouthadoop/}.first
 require PIG_JAR
 
 import 'java.util.Properties'
@@ -18,8 +22,6 @@ import 'org.apache.pig.tools.grunt.GruntParser'
 
 import 'org.apache.pig.newplan.logical.visitor.CastLineageSetter'
 import 'org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor'
-import 'org.apache.pig.newplan.logical.visitor.DuplicateForEachColumnRewriteVisitor'
-import 'org.apache.pig.newplan.logical.visitor.ImplicitSplitInsertVisitor'
 import 'org.apache.pig.newplan.logical.visitor.ScalarVariableValidator'
 import 'org.apache.pig.newplan.logical.visitor.ScalarVisitor'
 import 'org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor'
@@ -41,12 +43,12 @@ class LogicalPlanServer < PigServer
   # penny does. Probably isn't great going forward
   # but works for now
   #
-  def get_logical_plan script    
+  def get_logical_plan script
     parser = GruntParser.new(BufferedReader.new(FileReader.new(script)))
     parser.set_interactive(false)
     parser.set_params(self)
     set_batch_on
-    parser.parse_only
+    parser.parseOnly
     currentDAG.get_logical_plan  
   end
   
@@ -81,8 +83,6 @@ class PigParser
     ColumnAliasConversionVisitor.new(plan).visit
     SchemaAliasVisitor.new(plan).visit
     ScalarVisitor.new(plan, pig_context, '').visit
-    ImplicitSplitInsertVisitor.new(plan).visit
-    DuplicateForEachColumnRewriteVisitor.new(plan).visit
     
     collector = CompilationMessageCollector.new
     TypeCheckingRelVisitor.new(plan, collector).visit
