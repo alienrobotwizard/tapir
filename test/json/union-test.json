@@ -1,0 +1,61 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/words.tsv",
+      "alias": "words",
+      "schema": {
+        "fields": [
+          {
+            "name": "txt",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+
+    {
+      "operator": "load",
+      "uri": "../test/data/things.tsv",
+      "alias": "things",
+      "schema": {
+        "fields": [
+          {
+            "name": "txt",
+            "type": 55
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+    {
+      "operator": "union",
+      "alias": "married",
+      "input": [
+        "things", "words"
+      ],
+      "on_schema": false      
+    },
+    
+    {
+      "operator": "store",
+      "input": [
+        "married"
+      ],
+      "uri": "../test/data/union-test-out"
+    }
+  ]
+}

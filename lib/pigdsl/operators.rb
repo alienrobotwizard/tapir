@@ -15,6 +15,7 @@ module LogicalOperator
   autoload :Join,       'pigdsl/operators/join'
   autoload :Group,      'pigdsl/operators/group'
   autoload :Split,      'pigdsl/operators/split'
+  autoload :Union,      'pigdsl/operators/union'
 
   class Operator
     attr_accessor :in_nest_plan, :in_foreach_plan, :input_ops
@@ -33,7 +34,8 @@ module LogicalOperator
     'sort'        => LogicalOperator::Sort,
     'join'        => LogicalOperator::Join,
     'group'       => LogicalOperator::Group,
-    'split'       => LogicalOperator::Split
+    'split'       => LogicalOperator::Split,
+    'union'       => LogicalOperator::Union
   }
 
 
