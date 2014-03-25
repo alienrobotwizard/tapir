@@ -4,9 +4,8 @@ require 'java'
 require 'json'
 
 #
-# ---- Works with Pig 0.12 API ----
+# -- Works against trunk/pig 0.13 --
 #
-
 
 PIG_JAR = Dir[File.join(ENV['PIG_HOME'], 'pig.jar')].reject{|j| j =~ /withouthadoop/}.first
 require PIG_JAR
@@ -22,6 +21,8 @@ import 'org.apache.pig.tools.grunt.GruntParser'
 
 import 'org.apache.pig.newplan.logical.visitor.CastLineageSetter'
 import 'org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor'
+import 'org.apache.pig.newplan.logical.visitor.DuplicateForEachColumnRewriteVisitor'
+import 'org.apache.pig.newplan.logical.visitor.ImplicitSplitInsertVisitor'
 import 'org.apache.pig.newplan.logical.visitor.ScalarVariableValidator'
 import 'org.apache.pig.newplan.logical.visitor.ScalarVisitor'
 import 'org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor'
@@ -83,6 +84,8 @@ class PigParser
     ColumnAliasConversionVisitor.new(plan).visit
     SchemaAliasVisitor.new(plan).visit
     ScalarVisitor.new(plan, pig_context, '').visit
+    ImplicitSplitInsertVisitor.new(plan).visit
+    DuplicateForEachColumnRewriteVisitor.new(plan).visit
     
     collector = CompilationMessageCollector.new
     TypeCheckingRelVisitor.new(plan, collector).visit
