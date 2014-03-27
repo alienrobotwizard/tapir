@@ -17,14 +17,15 @@ tests = {
   :multikey        => 'multikey-test.json',
   :split           => 'split-test.json',
   :register        => 'register-test.json',
-  :union           => 'union-test.json'
+  :union           => 'union-test.json',
+  :rank            => 'rank-test.json'
 }
 
 to_run = [
   :clean, :test_distinct, :test_foreach, :test_limit,
   :test_filter, :test_order, :test_join, :test_join_foreach,
   :test_group, :test_cogroup, :test_multikey, :test_split,
-  :test_union
+  :test_union, :test_rank
 ]
 
 def run_test json
@@ -84,6 +85,10 @@ end
 
 task :test_union do
   run_test(tests[:union])
+end
+
+task :test_rank do
+  run_test(tests[:rank])
 end
 
 

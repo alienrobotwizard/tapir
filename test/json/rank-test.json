@@ -1,0 +1,49 @@
+{
+  "properties": {
+    "exectype": "local"
+  },
+  "graph": [
+    {
+      "operator": "load",
+      "uri": "../test/data/tosort.tsv",
+      "alias": "input_data",
+      "schema": {
+        "fields": [
+          { "name": "letter", "type": 55 },
+          { "name": "other", "type":10 },
+          {
+            "name": "numbers",
+            "type": 120,
+            "schema" : { "fields": [ { "name": "t", "type": 110, "schema": { "fields": [ { "name":"number", "type":10 } ] } } ] }
+          }
+        ],
+        "version": 0,
+        "sortKeys": [          
+        ],
+        "sortKeyOrders": [
+        ]
+      }
+    },
+    
+
+    {
+      "operator": "rank",
+      "alias": "ranked_by",
+      "input": [
+        "input_data"
+      ],
+      "columns" : [{"type":"col_ref","alias":"letter"}],
+      "orders" : ["desc"],
+      "dense": true
+    },
+
+
+    {
+      "operator": "store",
+      "input": [
+        "ranked_by"
+      ],
+      "uri": "../test/data/rank-test-out/ranked_by"
+    }
+  ]
+}
